@@ -47,12 +47,12 @@ public class UserService {
         return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User Not Found " + id));
     }
 
-    public User updateUser(Long id, User updated) {
+    public UserResponseDTO updateUser(Long id, UserRequestDTO updated) {
         User existing = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + id));
         existing.setName(updated.getName());
         existing.setDesignation(updated.getDesignation());
-        return userRepository.save(existing);
+        return toResponseDTO(userRepository.save(existing));
     }
 
     public void deleteUser(Long id) {

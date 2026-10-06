@@ -40,11 +40,10 @@ public class UserController {
     }
 
 
-    @PutMapping("{id}")
-    public User updateUser(@PathVariable Long id, @RequestBody User user){
-        return userService.updateUser(id,user);
+    @PutMapping("/{id}")
+    public UserResponseDTO updateUser(@PathVariable Long id, @Valid @RequestBody UserRequestDTO request) {
+        return userService.updateUser(id, request);
     }
-
 
 
     @DeleteMapping("{id}")
