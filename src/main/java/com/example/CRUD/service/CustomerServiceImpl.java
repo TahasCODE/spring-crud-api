@@ -4,7 +4,7 @@ import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.CustomerRepository;
-import com.example.CRUD.repo.OrderPlacerRepository;
+import com.example.CRUD.repo.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ import java.util.List;
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final OrderPlacerRepository orderPlacerRepository;
+    private final PersonRepository personRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,7 +34,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Customer create(Customer customer) {
-        if (customer.getEmail() != null && orderPlacerRepository.existsByEmail(customer.getEmail())) {
+        if (customer.getEmail() != null && personRepository.existsByEmail(customer.getEmail())) {
             throw new DuplicateResourceException("Email already in use: " + customer.getEmail());
         }
         customer.setId(null);
@@ -46,7 +46,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer existing = getById(id);
         if (updated.getEmail() != null
                 && !updated.getEmail().equals(existing.getEmail())
-                && orderPlacerRepository.existsByEmail(updated.getEmail())) {
+                && personRepository.existsByEmail(updated.getEmail())) {
             throw new DuplicateResourceException("Email already in use: " + updated.getEmail());
         }
         existing.setName(updated.getName());

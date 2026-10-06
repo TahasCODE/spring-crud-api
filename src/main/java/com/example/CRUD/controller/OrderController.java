@@ -3,7 +3,6 @@ package com.example.CRUD.controller;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
 import com.example.CRUD.Entity.OrderStatus;
-import com.example.CRUD.Entity.OrderType;
 import com.example.CRUD.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,30 +19,26 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public List<OrderResponse> getAll(@RequestParam(required = false) OrderType type) {
-        return orderService.getAll(type);
-    }
+    public List<OrderResponse> getAll() { return orderService.getAll(); }
+
+    @GetMapping("/sales")
+    public List<OrderResponse> getSales() { return orderService.getSales(); }
+
+    @GetMapping("/purchases")
+    public List<OrderResponse> getPurchases() { return orderService.getPurchases(); }
 
     @GetMapping("/{id}")
-    public OrderResponse getById(@PathVariable Long id) {
-        return orderService.getById(id);
-    }
+    public OrderResponse getById(@PathVariable Long id) { return orderService.getById(id); }
 
     @GetMapping("/placer/{placerId}")
-    public List<OrderResponse> getByPlacer(@PathVariable Long placerId) {
-        return orderService.getByPlacer(placerId);
-    }
+    public List<OrderResponse> getByPlacer(@PathVariable Long placerId) { return orderService.getByPlacer(placerId); }
 
     @GetMapping("/supplier/{supplierId}")
-    public List<OrderResponse> getBySupplier(@PathVariable Long supplierId) {
-        return orderService.getBySupplier(supplierId);
-    }
+    public List<OrderResponse> getBySupplier(@PathVariable Long supplierId) { return orderService.getBySupplier(supplierId); }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse create(@Valid @RequestBody OrderRequest request) {
-        return orderService.create(request);
-    }
+    public OrderResponse create(@Valid @RequestBody OrderRequest request) { return orderService.create(request); }
 
     @PatchMapping("/{id}/status")
     public OrderResponse updateStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
@@ -52,7 +47,5 @@ public class OrderController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        orderService.delete(id);
-    }
+    public void delete(@PathVariable Long id) { orderService.delete(id); }
 }

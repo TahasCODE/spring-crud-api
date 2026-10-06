@@ -4,7 +4,7 @@ import com.example.CRUD.Entity.Employee;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.EmployeeRepository;
-import com.example.CRUD.repo.OrderPlacerRepository;
+import com.example.CRUD.repo.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ import java.util.List;
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final OrderPlacerRepository orderPlacerRepository;
+    private final PersonRepository personRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -34,7 +34,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee create(Employee employee) {
-        if (employee.getEmail() != null && orderPlacerRepository.existsByEmail(employee.getEmail())) {
+        if (employee.getEmail() != null && personRepository.existsByEmail(employee.getEmail())) {
             throw new DuplicateResourceException("Email already in use: " + employee.getEmail());
         }
         employee.setId(null);
@@ -46,7 +46,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee existing = getById(id);
         if (updated.getEmail() != null
                 && !updated.getEmail().equals(existing.getEmail())
-                && orderPlacerRepository.existsByEmail(updated.getEmail())) {
+                && personRepository.existsByEmail(updated.getEmail())) {
             throw new DuplicateResourceException("Email already in use: " + updated.getEmail());
         }
         existing.setName(updated.getName());

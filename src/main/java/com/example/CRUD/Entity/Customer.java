@@ -1,15 +1,26 @@
 package com.example.CRUD.Entity;
+import com.example.CRUD.exception.BadRequestException;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
-@Data
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-@NoArgsConstructor
 @Table(name = "customers")
-public class Customer extends OrderPlacer {
+@Getter
+@Setter
+@NoArgsConstructor
+public class Customer extends Person implements OrderPlacer {
+
+    @Override
+    public Order placeOrder(BigDecimal totalAmount, OrderStatus status, Supplier supplier) {
+        if (supplier != null) {
+            throw new BadRequestException("A customer cannot place an order with a supplier");
+        }
+        SaleOrder order = new SaleOrder();
+        order.setPlacer(this);
+        order.setTotalAmount(totalAmount);
+        order.setStatus(status);
+        return order;
+    }
 }

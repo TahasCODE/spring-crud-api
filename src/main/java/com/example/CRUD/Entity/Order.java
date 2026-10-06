@@ -1,34 +1,26 @@
 package com.example.CRUD.Entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Data
 @Table(name = "orders")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "order_type", discriminatorType = DiscriminatorType.STRING, length = 20)
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Order {
+public abstract class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private OrderType type;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_placer_id", nullable = false)
-    private OrderPlacer orderPlacer;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supplier_id")
-    private Supplier supplier; // only set for PURCHASE orders
+    @JoinColumn(name = "placer_id", nullable = false)
+    private Person placer;
 
     @Column(nullable = false)
     private LocalDateTime orderDate;
@@ -44,5 +36,11 @@ public class Order {
     void onCreate() {
         if (orderDate == null) orderDate = LocalDateTime.now();
         if (status == null) status = OrderStatus.PENDING;
+    }
+
+    public abstract String getType();   // "SALE" or "PURCHASE", for responses only
+
+    public Supplier getSupplier() {     // sales have none; PurchaseOrder overrides it
+        return null;
     }
 }

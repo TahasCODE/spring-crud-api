@@ -1,19 +1,31 @@
 package com.example.CRUD.Entity;
 
+import com.example.CRUD.exception.BadRequestException;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
-@Data
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-@NoArgsConstructor
 @Table(name = "employees")
-public class Employee extends OrderPlacer {
+@Getter
+@Setter
+@NoArgsConstructor
+public class Employee extends Person implements OrderPlacer {
 
     @Column(nullable = false, length = 100)
     private String designation;
+
+    @Override
+    public Order placeOrder(BigDecimal totalAmount, OrderStatus status, Supplier supplier) {
+        if (supplier == null) {
+            throw new BadRequestException("supplierId is required when an employee places an order");
+        }
+        PurchaseOrder order = new PurchaseOrder();
+        order.setPlacer(this);
+        order.setSupplier(supplier);
+        order.setTotalAmount(totalAmount);
+        order.setStatus(status);
+        return order;
+    }
 }

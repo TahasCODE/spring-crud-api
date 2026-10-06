@@ -18,16 +18,25 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final CustomerRepository customerRepository;
-    private final EmployeeRepository employeeRepository;
+    private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
-    private final OrderPlacerRepository orderPlacerRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderResponse> getAll(OrderType type) {
-        List<Order> orders = (type == null) ? orderRepository.findAll() : orderRepository.findByType(type);
-        return orders.stream().map(this::toResponse).toList();
+    public List<OrderResponse> getAll() {
+        return orderRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getSales() {
+        return orderRepository.findAllSales().stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getPurchases() {
+        return orderRepository.findAllPurchases().stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -39,10 +48,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getByPlacer(Long placerId) {
-        if (!orderPlacerRepository.existsById(placerId)) {
+        if (!personRepository.existsById(placerId)) {
             throw new ResourceNotFoundException("Order placer not found with id " + placerId);
         }
-        return orderRepository.findByOrderPlacerId(placerId).stream().map(this::toResponse).toList();
+        return orderRepository.findByPlacerId(placerId).stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -51,36 +60,26 @@ public class OrderServiceImpl implements OrderService {
         if (!supplierRepository.existsById(supplierId)) {
             throw new ResourceNotFoundException("Supplier not found with id " + supplierId);
         }
-        return orderRepository.findBySupplierId(supplierId).stream().map(this::toResponse).toList();
+        return orderRepository.findPurchasesBySupplier(supplierId).stream().map(this::toResponse).toList();
     }
 
     @Override
     public OrderResponse create(OrderRequest request) {
-        OrderPlacer placer;
-        Supplier supplier = null;
+        Person person = personRepository.findById(request.placerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order placer not found with id " + request.placerId()));
 
-        if (request.type() == OrderType.SALE) {
-            if (request.supplierId() != null) {
-                throw new BadRequestException("A SALE order cannot have a supplier");
-            }
-            placer = customerRepository.findById(request.placerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + request.placerId()));
-        } else {
-            if (request.supplierId() == null) {
-                throw new BadRequestException("supplierId is required for a PURCHASE order");
-            }
-            placer = employeeRepository.findById(request.placerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id " + request.placerId()));
+        if (!(person instanceof OrderPlacer placer)) {
+            throw new BadRequestException("This person cannot place orders");
+        }
+
+        Supplier supplier = null;
+        if (request.supplierId() != null) {
             supplier = supplierRepository.findById(request.supplierId())
                     .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id " + request.supplierId()));
         }
 
-        Order order = new Order();
-        order.setType(request.type());
-        order.setOrderPlacer(placer);
-        order.setSupplier(supplier);
-        order.setTotalAmount(request.totalAmount());
-        order.setStatus(request.status()); // null falls back to PENDING in @PrePersist
+        // the placer decides the order type: Customer -> SaleOrder, Employee -> PurchaseOrder
+        Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
         return toResponse(orderRepository.save(order));
     }
 
@@ -106,8 +105,8 @@ public class OrderServiceImpl implements OrderService {
         return new OrderResponse(
                 o.getId(),
                 o.getType(),
-                o.getOrderPlacer().getId(),
-                o.getOrderPlacer().getName(),
+                o.getPlacer().getId(),
+                o.getPlacer().getName(),
                 s == null ? null : s.getId(),
                 s == null ? null : s.getName(),
                 o.getOrderDate(),
