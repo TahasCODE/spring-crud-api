@@ -1,5 +1,6 @@
 package com.example.CRUD.controller;
 
+import com.example.CRUD.DTO.EmployeeResponse;
 import com.example.CRUD.Entity.Employee;
 import com.example.CRUD.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public List<Employee> getAll() {
+    public List<EmployeeResponse> getAll() {
         return employeeService.getAll();
     }
 

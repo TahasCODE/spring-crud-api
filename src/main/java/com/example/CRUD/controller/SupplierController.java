@@ -1,5 +1,6 @@
 package com.example.CRUD.controller;
 
+import com.example.CRUD.DTO.SupplierResponse;
 import com.example.CRUD.Entity.Supplier;
 import com.example.CRUD.service.SupplierService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    public List<Supplier> getAll() {
+    public List<SupplierResponse> getAll() {
         return supplierService.getAll();
     }
 

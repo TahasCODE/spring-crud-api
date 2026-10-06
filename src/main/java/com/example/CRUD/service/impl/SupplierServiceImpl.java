@@ -1,5 +1,6 @@
 package com.example.CRUD.service.impl;
 
+import com.example.CRUD.DTO.SupplierResponse;
 import com.example.CRUD.Entity.Supplier;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
@@ -20,8 +21,12 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Supplier> getAll() {
-        return supplierRepository.findAll();
+    public List<SupplierResponse> getAll() {
+        return supplierRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    private SupplierResponse toResponse(Supplier s) {
+        return new SupplierResponse(s.getId(),s.getName(),s.getContactPerson(),s.getEmail(),s.getAddress(),s.getPhone());
     }
 
     @Override

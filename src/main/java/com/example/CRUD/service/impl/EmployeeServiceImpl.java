@@ -1,5 +1,7 @@
 package com.example.CRUD.service.impl;
 
+import com.example.CRUD.DTO.CustomerResponse;
+import com.example.CRUD.DTO.EmployeeResponse;
 import com.example.CRUD.Entity.Employee;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
@@ -12,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static java.util.Arrays.stream;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -22,8 +26,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Employee> getAll() {
-        return employeeRepository.findAll();
+    public List<EmployeeResponse> getAll() {
+        return employeeRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    private EmployeeResponse toResponse(Employee e) {
+        return new EmployeeResponse(e.getId(),e.getName(),e.getEmail(),e.getPhone(),e.getDesignation(),e.getAddress());
     }
 
     @Override

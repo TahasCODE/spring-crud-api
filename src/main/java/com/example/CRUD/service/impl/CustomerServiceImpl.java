@@ -1,5 +1,7 @@
 package com.example.CRUD.service.impl;
 
+import com.example.CRUD.DTO.CustomerRequest;
+import com.example.CRUD.DTO.CustomerResponse;
 import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
@@ -22,43 +24,55 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Customer> getAll() {
-        return customerRepository.findAll();
+    public List<CustomerResponse> getAll() {
+        return customerRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Customer getById(Long id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
+    public CustomerResponse getById(Long id) {
+        return toResponse(findCustomer(id));
     }
 
     @Override
-    public Customer create(Customer customer) {
-        if (customer.getEmail() != null && personRepository.existsByEmail(customer.getEmail())) {
-            throw new DuplicateResourceException("Email already in use: " + customer.getEmail());
+    public CustomerResponse create(CustomerRequest r) {
+        if (r.email() != null && personRepository.existsByEmail(r.email())) {
+            throw new DuplicateResourceException("Email already in use: " + r.email());
         }
-        customer.setId(null);
-        return customerRepository.save(customer);
+        Customer c = new Customer();
+        apply(c, r);
+        return toResponse(customerRepository.save(c));
     }
 
     @Override
-    public Customer update(Long id, Customer updated) {
-        Customer existing = getById(id);
-        if (updated.getEmail() != null
-                && !updated.getEmail().equals(existing.getEmail())
-                && personRepository.existsByEmail(updated.getEmail())) {
-            throw new DuplicateResourceException("Email already in use: " + updated.getEmail());
+    public CustomerResponse update(Long id, CustomerRequest r) {
+        Customer existing = findCustomer(id);
+        if (r.email() != null && !r.email().equals(existing.getEmail())
+                && personRepository.existsByEmail(r.email())) {
+            throw new DuplicateResourceException("Email already in use: " + r.email());
         }
-        existing.setName(updated.getName());
-        existing.setEmail(updated.getEmail());
-        existing.setPhone(updated.getPhone());
-        existing.setAddress(updated.getAddress());
-        return customerRepository.save(existing);
+        apply(existing, r);
+        return toResponse(customerRepository.save(existing));
     }
 
     @Override
     public void delete(Long id) {
-        customerRepository.delete(getById(id));
+        customerRepository.delete(findCustomer(id));
+    }
+
+    private Customer findCustomer(Long id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
+    }
+
+    private void apply(Customer c, CustomerRequest r) {   // request -> entity
+        c.setName(r.name());
+        c.setEmail(r.email());
+        c.setPhone(r.phone());
+        c.setAddress(r.address());
+    }
+
+    private CustomerResponse toResponse(Customer c) {      // entity -> response
+        return new CustomerResponse(c.getId(), c.getName(), c.getEmail(), c.getPhone(), c.getAddress());
     }
 }
