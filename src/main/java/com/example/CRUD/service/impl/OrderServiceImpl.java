@@ -1,4 +1,4 @@
-package com.example.CRUD.service;
+package com.example.CRUD.service.impl;
 
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
@@ -6,6 +6,7 @@ import com.example.CRUD.Entity.*;
 import com.example.CRUD.exception.BadRequestException;
 import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.*;
+import com.example.CRUD.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

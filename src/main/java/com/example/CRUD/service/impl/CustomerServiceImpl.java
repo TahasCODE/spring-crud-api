@@ -1,10 +1,11 @@
-package com.example.CRUD.service;
+package com.example.CRUD.service.impl;
 
 import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.CustomerRepository;
 import com.example.CRUD.repo.PersonRepository;
+import com.example.CRUD.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
