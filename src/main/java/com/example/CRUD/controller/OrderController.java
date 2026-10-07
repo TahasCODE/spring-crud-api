@@ -3,10 +3,14 @@ package com.example.CRUD.controller;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
 import com.example.CRUD.Entity.OrderStatus;
+import com.example.CRUD.service.OrderPdfService;
 import com.example.CRUD.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,9 +21,19 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderPdfService orderPdfService;
 
     @GetMapping
     public List<OrderResponse> getAll() { return orderService.getAll(); }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
+        byte[] pdf = orderPdfService.generateOrderPdf(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=order-" + id + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
 
     @GetMapping("/sales")
     public List<OrderResponse> getSales() { return orderService.getSales(); }
