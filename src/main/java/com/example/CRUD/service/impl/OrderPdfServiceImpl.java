@@ -34,8 +34,8 @@ public class OrderPdfServiceImpl implements OrderPdfService {
             PDPage page = new PDPage(PDRectangle.A4);
             doc.addPage(page);
 
-            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD);
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.COURIER);
 
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 line(cs, bold, 16, 50, 810, pdfProperties.companyName());
