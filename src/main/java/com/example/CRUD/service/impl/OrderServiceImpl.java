@@ -2,10 +2,16 @@ package com.example.CRUD.service.impl;
 
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
-import com.example.CRUD.Entity.*;
+import com.example.CRUD.Entity.Order;
+import com.example.CRUD.Entity.OrderPlacer;
+import com.example.CRUD.Entity.OrderStatus;
+import com.example.CRUD.Entity.Person;
+import com.example.CRUD.Entity.Supplier;
 import com.example.CRUD.exception.BadRequestException;
 import com.example.CRUD.exception.ResourceNotFoundException;
-import com.example.CRUD.repo.*;
+import com.example.CRUD.repo.OrderRepository;
+import com.example.CRUD.repo.PersonRepository;
+import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -79,7 +85,7 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id " + request.supplierId()));
         }
 
-        // the placer decides the order type: Customer -> SaleOrder, Employee -> PurchaseOrder
+        // Customer -> SaleOrder, Employee -> PurchaseOrder
         Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
         return toResponse(orderRepository.save(order));
     }

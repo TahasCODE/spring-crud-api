@@ -34,6 +34,11 @@ public class FileController {
         return fileVaultService.list();
     }
 
+    @GetMapping("/order/{orderId}")
+    public List<FileResponse> listByOrder(@PathVariable Long orderId) {
+        return fileVaultService.listByOrder(orderId);
+    }
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         FileDownload d = fileVaultService.download(id);

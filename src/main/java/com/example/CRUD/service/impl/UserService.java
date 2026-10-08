@@ -1,4 +1,4 @@
-package com.example.CRUD.service;
+package com.example.CRUD.service.impl;
 
 
 import com.example.CRUD.DTO.UserRequestDTO;
