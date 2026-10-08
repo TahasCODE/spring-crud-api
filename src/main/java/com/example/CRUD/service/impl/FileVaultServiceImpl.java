@@ -42,6 +42,18 @@ public class FileVaultServiceImpl implements FileVaultService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public FileDownload downloadLatestByOrder(Long orderId) {
+        StoredFile sf = repository.findFirstByOrderIdOrderByUploadedAtDesc(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("No file stored for order " + orderId));
+        Path path = resolvePath(sf.getStoredName());
+        if (!Files.exists(path)) {
+            throw new ResourceNotFoundException("File content is missing for order " + orderId);
+        }
+        return new FileDownload(new FileSystemResource(path), sf.getDisplayName(), sf.getContentType());
+    }
+
+    @Override
     @Transactional
     public FileResponse upload(MultipartFile file) {
         if (file.isEmpty()) {

@@ -16,4 +16,6 @@ public interface FileVaultService {
     FileDownload download(Long id);
     void delete(Long id);
     void deleteByOrder(Long orderId);
+
+    FileDownload downloadLatestByOrder(Long orderId);
 }
