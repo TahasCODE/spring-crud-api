@@ -1,6 +1,6 @@
 package com.example.CRUD.service.impl;
 
-import com.example.CRUD.DTO.CustomerResponse;
+import com.example.CRUD.DTO.EmployeeRequest;
 import com.example.CRUD.DTO.EmployeeResponse;
 import com.example.CRUD.Entity.Employee;
 import com.example.CRUD.exception.DuplicateResourceException;
@@ -8,13 +8,12 @@ import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.EmployeeRepository;
 import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.service.EmployeeService;
+import com.example.CRUD.service.ProfilePictureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
-import static java.util.Arrays.stream;
 
 @Service
 @RequiredArgsConstructor
@@ -23,51 +22,54 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final PersonRepository personRepository;
+    private final ProfilePictureService profilePictureService;
 
-    @Override
-    @Transactional(readOnly = true)
+    @Override @Transactional(readOnly = true)
     public List<EmployeeResponse> getAll() {
         return employeeRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    private EmployeeResponse toResponse(Employee e) {
-        return new EmployeeResponse(e.getId(),e.getName(),e.getEmail(),e.getPhone(),e.getDesignation(),e.getAddress());
-    }
+    @Override @Transactional(readOnly = true)
+    public EmployeeResponse getById(Long id) { return toResponse(find(id)); }
 
     @Override
-    @Transactional(readOnly = true)
-    public Employee getById(Long id) {
-        return employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id " + id));
-    }
-
-    @Override
-    public Employee create(Employee employee) {
-        if (employee.getEmail() != null && personRepository.existsByEmail(employee.getEmail())) {
-            throw new DuplicateResourceException("Email already in use: " + employee.getEmail());
+    public EmployeeResponse create(EmployeeRequest r) {
+        if (r.email() != null && personRepository.existsByEmail(r.email())) {
+            throw new DuplicateResourceException("Email already in use: " + r.email());
         }
-        employee.setId(null);
-        return employeeRepository.save(employee);
+        Employee e = new Employee();
+        apply(e, r);
+        return toResponse(employeeRepository.save(e));
     }
 
     @Override
-    public Employee update(Long id, Employee updated) {
-        Employee existing = getById(id);
-        if (updated.getEmail() != null
-                && !updated.getEmail().equals(existing.getEmail())
-                && personRepository.existsByEmail(updated.getEmail())) {
-            throw new DuplicateResourceException("Email already in use: " + updated.getEmail());
+    public EmployeeResponse update(Long id, EmployeeRequest r) {
+        Employee e = find(id);
+        if (r.email() != null && !r.email().equals(e.getEmail()) && personRepository.existsByEmail(r.email())) {
+            throw new DuplicateResourceException("Email already in use: " + r.email());
         }
-        existing.setName(updated.getName());
-        existing.setEmail(updated.getEmail());
-        existing.setPhone(updated.getPhone());
-        existing.setAddress(updated.getAddress());
-        existing.setDesignation(updated.getDesignation());
-        return employeeRepository.save(existing);
+        apply(e, r);
+        return toResponse(employeeRepository.save(e));
     }
 
     @Override
     public void delete(Long id) {
-        employeeRepository.delete(getById(id));
+        Employee e = find(id);
+        profilePictureService.deleteIfExists(id);   // no orphan picture left behind
+        employeeRepository.delete(e);
+    }
+
+    private Employee find(Long id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id " + id));
+    }
+
+    private void apply(Employee e, EmployeeRequest r) {
+        e.setName(r.name()); e.setEmail(r.email()); e.setPhone(r.phone());
+        e.setAddress(r.address()); e.setDesignation(r.designation());
+    }
+
+    private EmployeeResponse toResponse(Employee e) {
+        return new EmployeeResponse(e.getId(), e.getName(), e.getEmail(), e.getPhone(), e.getAddress(), e.getDesignation());
     }
 }
