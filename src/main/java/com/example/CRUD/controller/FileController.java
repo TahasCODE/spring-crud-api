@@ -34,6 +34,21 @@ public class FileController {
         return fileVaultService.list();
     }
 
+    @GetMapping("/order/{orderId}")
+    public List<FileResponse> listByOrder(@PathVariable Long orderId) {
+        return fileVaultService.listByOrder(orderId);
+    }
+
+    @GetMapping("/order/{orderId}/download")
+    public ResponseEntity<Resource> downloadByOrder(@PathVariable Long orderId) {
+        FileDownload d = fileVaultService.downloadLatestByOrder(orderId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(d.fileName(), StandardCharsets.UTF_8).build().toString())
+                .contentType(MediaType.parseMediaType(d.contentType()))
+                .body(d.resource());
+    }
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         FileDownload d = fileVaultService.download(id);

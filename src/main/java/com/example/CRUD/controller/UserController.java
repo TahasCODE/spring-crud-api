@@ -4,8 +4,7 @@ package com.example.CRUD.controller;
 
 import com.example.CRUD.DTO.UserRequestDTO;
 import com.example.CRUD.DTO.UserResponseDTO;
-import com.example.CRUD.Entity.User;
-import com.example.CRUD.service.UserService;
+import com.example.CRUD.service.impl.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
