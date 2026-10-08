@@ -82,7 +82,6 @@ public class OrderController {
         try {
             orderPdfService.generateAndStore(orderId);
         } catch (RuntimeException e) {
-            // the order is already saved, so don't fail the request; POST /{id}/pdf can retry
             log.warn("Could not store PDF for order {}", orderId, e);
         }
     }

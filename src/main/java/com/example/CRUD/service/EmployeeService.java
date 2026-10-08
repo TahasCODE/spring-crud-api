@@ -1,14 +1,14 @@
 package com.example.CRUD.service;
 
+import com.example.CRUD.DTO.EmployeeRequest;
 import com.example.CRUD.DTO.EmployeeResponse;
-import com.example.CRUD.Entity.Employee;
 
 import java.util.List;
 
 public interface EmployeeService {
     List<EmployeeResponse> getAll();
-    Employee getById(Long id);
-    Employee create(Employee employee);
-    Employee update(Long id, Employee employee);
+    EmployeeResponse getById(Long id);
+    EmployeeResponse create(EmployeeRequest request);
+    EmployeeResponse update(Long id, EmployeeRequest request);
     void delete(Long id);
 }

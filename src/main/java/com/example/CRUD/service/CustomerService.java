@@ -2,7 +2,6 @@ package com.example.CRUD.service;
 
 import com.example.CRUD.DTO.CustomerRequest;
 import com.example.CRUD.DTO.CustomerResponse;
-import com.example.CRUD.Entity.Customer;
 
 import java.util.List;
 

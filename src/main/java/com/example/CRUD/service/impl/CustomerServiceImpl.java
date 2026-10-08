@@ -8,6 +8,7 @@ import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.CustomerRepository;
 import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.service.CustomerService;
+import com.example.CRUD.service.ProfilePictureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,18 +22,15 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final PersonRepository personRepository;
+    private final ProfilePictureService profilePictureService;
 
-    @Override
-    @Transactional(readOnly = true)
+    @Override @Transactional(readOnly = true)
     public List<CustomerResponse> getAll() {
         return customerRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public CustomerResponse getById(Long id) {
-        return toResponse(findCustomer(id));
-    }
+    @Override @Transactional(readOnly = true)
+    public CustomerResponse getById(Long id) { return toResponse(find(id)); }
 
     @Override
     public CustomerResponse create(CustomerRequest r) {
@@ -46,33 +44,31 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerResponse update(Long id, CustomerRequest r) {
-        Customer existing = findCustomer(id);
-        if (r.email() != null && !r.email().equals(existing.getEmail())
-                && personRepository.existsByEmail(r.email())) {
+        Customer c = find(id);
+        if (r.email() != null && !r.email().equals(c.getEmail()) && personRepository.existsByEmail(r.email())) {
             throw new DuplicateResourceException("Email already in use: " + r.email());
         }
-        apply(existing, r);
-        return toResponse(customerRepository.save(existing));
+        apply(c, r);
+        return toResponse(customerRepository.save(c));
     }
 
     @Override
     public void delete(Long id) {
-        customerRepository.delete(findCustomer(id));
+        Customer c = find(id);
+        profilePictureService.deleteIfExists(id);   // no orphan picture left behind
+        customerRepository.delete(c);
     }
 
-    private Customer findCustomer(Long id) {
+    private Customer find(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
     }
 
-    private void apply(Customer c, CustomerRequest r) {   // request -> entity
-        c.setName(r.name());
-        c.setEmail(r.email());
-        c.setPhone(r.phone());
-        c.setAddress(r.address());
+    private void apply(Customer c, CustomerRequest r) {
+        c.setName(r.name()); c.setEmail(r.email()); c.setPhone(r.phone()); c.setAddress(r.address());
     }
 
-    private CustomerResponse toResponse(Customer c) {      // entity -> response
+    private CustomerResponse toResponse(Customer c) {
         return new CustomerResponse(c.getId(), c.getName(), c.getEmail(), c.getPhone(), c.getAddress());
     }
 }

@@ -2,7 +2,6 @@ package com.example.CRUD.controller;
 
 import com.example.CRUD.DTO.CustomerRequest;
 import com.example.CRUD.DTO.CustomerResponse;
-import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +23,7 @@ public class CustomerController {
     @GetMapping("/{id}")
     public CustomerResponse getById(@PathVariable Long id) { return customerService.getById(id); }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public CustomerResponse create(@Valid @RequestBody CustomerRequest request) {
         return customerService.create(request);
     }
@@ -35,7 +33,6 @@ public class CustomerController {
         return customerService.update(id, request);
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) { customerService.delete(id); }
 }
