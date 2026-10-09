@@ -1,9 +1,6 @@
 package com.example.CRUD.service.impl;
 
-import com.example.CRUD.DTO.AuthResponse;
-import com.example.CRUD.DTO.LoginRequest;
-import com.example.CRUD.DTO.RegisterCustomerRequest;
-import com.example.CRUD.DTO.RegisterEmployeeRequest;
+import com.example.CRUD.DTO.*;
 import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.Entity.Employee;
 import com.example.CRUD.Entity.Person;
@@ -24,9 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
-    private static final String ROLE_CUSTOMER = "CUSTOMER";
-    private static final String ROLE_EMPLOYEE = "EMPLOYEE";
-
     private final PersonRepository personRepository;
     private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
@@ -42,11 +36,12 @@ public class AuthServiceImpl implements AuthService {
         c.setPhone(r.phone());
         c.setAddress(r.address());
         c.setPasswordHash(passwordEncoder.encode(r.password()));
-        return toAuthResponse(customerRepository.save(c), ROLE_CUSTOMER);
+        Customer saved = customerRepository.save(c);
+        return toAuthResponse(saved);
     }
 
     @Override
-    public AuthResponse registerEmployee(RegisterEmployeeRequest r) {
+    public EmployeeResponse registerEmployee(RegisterEmployeeRequest r) {
         ensureEmailIsFree(r.email());
         Employee e = new Employee();
         e.setName(r.name());
@@ -54,24 +49,32 @@ public class AuthServiceImpl implements AuthService {
         e.setPhone(r.phone());
         e.setAddress(r.address());
         e.setDesignation(r.designation());
+        e.setEmployeeType(r.employeeType());
         e.setPasswordHash(passwordEncoder.encode(r.password()));
-        return toAuthResponse(employeeRepository.save(e), ROLE_EMPLOYEE);
+        Employee s = employeeRepository.save(e);
+        return new EmployeeResponse(s.getId(), s.getName(), s.getEmail(), s.getPhone(),
+                s.getAddress(), s.getDesignation(), s.getEmployeeType());
     }
 
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest r) {
-        // same error for an unknown email and a wrong password, so nobody can find out which emails exist
         Person person = personRepository.findByEmail(r.email())
                 .orElseThrow(InvalidCredentialsException::new);
 
         if (person.getPasswordHash() == null
                 || !passwordEncoder.matches(r.password(), person.getPasswordHash())) {
-            throw new InvalidCredentialsException();
+            throw new InvalidCredentialsException();   // same error either way
         }
+        return toAuthResponse(person);
+    }
 
-        String role = (person instanceof Employee) ? ROLE_EMPLOYEE : ROLE_CUSTOMER;
-        return toAuthResponse(person, role);
+    // CUSTOMER, CASHIER or MANAGER; an employee without a type gets EMPLOYEE, which has no order permissions
+    private String roleOf(Person p) {
+        if (p instanceof Employee e) {
+            return e.getEmployeeType() != null ? e.getEmployeeType().name() : "EMPLOYEE";
+        }
+        return "CUSTOMER";
     }
 
     private void ensureEmailIsFree(String email) {
@@ -80,11 +83,9 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private AuthResponse toAuthResponse(Person p, String role) {
-        return new AuthResponse(
-                jwtService.generateToken(p, role),
-                "Bearer",
-                jwtService.expiresInSeconds(),
-                p.getId(), p.getName(), p.getEmail(), role);
+    private AuthResponse toAuthResponse(Person p) {
+        String role = roleOf(p);
+        return new AuthResponse(jwtService.generateToken(p, role), "Bearer",
+                jwtService.expiresInSeconds(), p.getId(), p.getName(), p.getEmail(), role);
     }
 }

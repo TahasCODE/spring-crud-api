@@ -1,20 +1,26 @@
 package com.example.CRUD.Entity;
 
+
+
 import com.example.CRUD.exception.BadRequestException;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "employees")
-@Getter
-@Setter
-@NoArgsConstructor
+@Getter @Setter @NoArgsConstructor
 public class Employee extends Person implements OrderPlacer {
 
     @Column(nullable = false, length = 100)
     private String designation;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "employee_type", length = 20)   // nullable so existing rows stay valid
+    private EmployeeType employeeType;
 
     @Override
     public Order placeOrder(BigDecimal totalAmount, OrderStatus status, Supplier supplier) {
