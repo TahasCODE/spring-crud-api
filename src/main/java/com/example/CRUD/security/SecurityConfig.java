@@ -33,7 +33,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())   // not needed: no cookies or sessions, the token is sent in a header
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register/customer").permitAll()
+                        .requestMatchers("/api/auth/register/employee").hasRole("MANAGER")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));

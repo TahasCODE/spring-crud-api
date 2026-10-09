@@ -1,5 +1,5 @@
 package com.example.CRUD.service.impl;
-
+import com.example.CRUD.security.OrderAccessPolicy;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
 import com.example.CRUD.Entity.Order;
@@ -25,6 +25,7 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderAccessPolicy orderAccessPolicy;
     private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
 
@@ -87,6 +88,7 @@ public class OrderServiceImpl implements OrderService {
 
         // Customer -> SaleOrder, Employee -> PurchaseOrder
         Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
+        orderAccessPolicy.assertCanPlace(order);   // 403 if the logged-in user may not place this order
         return toResponse(orderRepository.save(order));
     }
 

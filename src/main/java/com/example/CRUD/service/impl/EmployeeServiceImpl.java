@@ -70,6 +70,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     private EmployeeResponse toResponse(Employee e) {
-        return new EmployeeResponse(e.getId(), e.getName(), e.getEmail(), e.getPhone(), e.getAddress(), e.getDesignation());
+        return new EmployeeResponse(e.getId(), e.getName(), e.getEmail(), e.getPhone(),
+                e.getAddress(), e.getDesignation(), e.getEmployeeType());
     }
 }
