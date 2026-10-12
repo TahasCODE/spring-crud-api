@@ -12,6 +12,14 @@ public class OrderAccessPolicy {
 
     private final CurrentUser currentUser;
 
+    public void assertCanView(Order order) {
+        // customers may only see their own orders; cashiers and managers keep their existing access
+        if ("CUSTOMER".equals(currentUser.role())
+                && !order.getPlacer().getId().equals(currentUser.id())) {
+            throw new AccessDeniedException("Customers may only view their own orders");
+        }
+    }
+
     public void assertCanPlace(Order order) {
         String role = currentUser.role();
         Long userId = currentUser.id();
