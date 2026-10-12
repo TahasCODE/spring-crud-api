@@ -50,7 +50,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getById(Long id) {
-        return toResponse(findOrder(id));
+        Order order = findOrder(id);
+        orderAccessPolicy.assertCanView(order);   // 403 if a customer asks for someone else's order
+        return toResponse(order);
     }
 
     @Override
