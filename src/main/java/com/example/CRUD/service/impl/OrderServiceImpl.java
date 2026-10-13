@@ -14,6 +14,9 @@ import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +36,16 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getAll() {
         return orderRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAll(int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new BadRequestException("page must be 0 or more and size must be 1 or more");
+        }
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
+        return orderRepository.findAll(pageable).stream().map(this::toResponse).toList();
     }
 
     @Override

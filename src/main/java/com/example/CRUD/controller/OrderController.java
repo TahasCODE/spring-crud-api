@@ -24,8 +24,13 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
 
-    @GetMapping
-    public List<OrderResponse> getAll() { return orderService.getAll(); }
+//    @GetMapping
+//    public List<OrderResponse> getAll() { return orderService.getAll(); }
+@GetMapping
+public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
+                                  @RequestParam(defaultValue = "10") int size) {
+    return orderService.getAll(page, size);
+}
 
     @GetMapping("/sales")
     public List<OrderResponse> getSales() { return orderService.getSales(); }

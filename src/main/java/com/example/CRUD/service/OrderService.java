@@ -7,6 +7,7 @@ import com.example.CRUD.Entity.OrderStatus;
 import java.util.List;
 
 public interface OrderService {
+    List<OrderResponse> getAll(int page,int size);
     List<OrderResponse> getAll();
     List<OrderResponse> getSales();
     List<OrderResponse> getPurchases();
