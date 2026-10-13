@@ -6,6 +6,8 @@ import com.example.CRUD.exception.DuplicateResourceException;
 import com.example.CRUD.exception.ResourceNotFoundException;
 import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.SupplierService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "suppliers", key = "'all'")
     public List<SupplierResponse> getAll() {
         return supplierRepository.findAll().stream().map(this::toResponse).toList();
     }
@@ -31,12 +34,14 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "suppliers",key = "#id")
     public Supplier getById(Long id) {
         return supplierRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id " + id));
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public Supplier create(Supplier supplier) {
         if (supplier.getEmail() != null && supplierRepository.existsByEmail(supplier.getEmail())) {
             throw new DuplicateResourceException("Email already in use: " + supplier.getEmail());
@@ -46,6 +51,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public Supplier update(Long id, Supplier updated) {
         Supplier existing = getById(id);
         if (updated.getEmail() != null
@@ -62,6 +68,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public void delete(Long id) {
         supplierRepository.delete(getById(id));
     }
