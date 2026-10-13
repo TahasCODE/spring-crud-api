@@ -10,6 +10,7 @@ import com.example.CRUD.repo.CustomerRepository;
 import com.example.CRUD.repo.EmployeeRepository;
 import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.security.JwtService;
+import com.example.CRUD.security.LoginAttemptService;
 import com.example.CRUD.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginAttemptService loginAttemptService;
 
     @Override
     public AuthResponse registerCustomer(RegisterCustomerRequest r) {
@@ -59,13 +61,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest r) {
-        Person person = personRepository.findByEmail(r.email())
-                .orElseThrow(InvalidCredentialsException::new);
+        loginAttemptService.checkNotBlocked(r.email());
 
-        if (person.getPasswordHash() == null
+        Person person = personRepository.findByEmail(r.email()).orElse(null);
+        if (person == null || person.getPasswordHash() == null
                 || !passwordEncoder.matches(r.password(), person.getPasswordHash())) {
-            throw new InvalidCredentialsException();   // same error either way
+            loginAttemptService.recordFailure(r.email());
+            throw new InvalidCredentialsException();
         }
+        loginAttemptService.reset(r.email());
         return toAuthResponse(person);
     }
 
