@@ -20,6 +20,7 @@ vault-storage/
 *.iws
 *.iml
 *.ipr
+.env
 
 ### NetBeans ###
 /nbproject/private/
