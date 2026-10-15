@@ -14,12 +14,18 @@ import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -31,6 +37,18 @@ public class OrderServiceImpl implements OrderService {
     private final OrderAccessPolicy orderAccessPolicy;
     private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
+
+    @Override
+    public Page<OrderResponse> getByDateRange(LocalDate from, LocalDate to, int page, int size) {
+        if (from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from must not be after to");
+        }
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime end = to.atTime(LocalTime.MAX);
+        Pageable pageable =  PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
+        return orderRepository.findByOrderDateBetween(start, end, pageable)
+                .map(this::toResponse);
+    }
 
     @Override
     @Transactional(readOnly = true)

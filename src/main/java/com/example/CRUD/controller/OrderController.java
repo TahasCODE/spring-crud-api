@@ -7,12 +7,15 @@ import com.example.CRUD.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -24,8 +27,15 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
 
-//    @GetMapping
-//    public List<OrderResponse> getAll() { return orderService.getAll(); }
+    @GetMapping("/date-range")
+    public Page<OrderResponse> getByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return orderService.getByDateRange(from, to, page, size);
+    }
+
 @GetMapping
 public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
                                   @RequestParam(defaultValue = "10") int size) {

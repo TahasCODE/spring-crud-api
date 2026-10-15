@@ -3,10 +3,13 @@ package com.example.CRUD.service;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
 import com.example.CRUD.Entity.OrderStatus;
+import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface OrderService {
+    Page<OrderResponse> getByDateRange(LocalDate from, LocalDate to, int page, int size);
     List<OrderResponse> getAll(int page,int size);
     List<OrderResponse> getAll();
     List<OrderResponse> getSales();
