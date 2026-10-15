@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,6 +40,34 @@ public class OrderServiceImpl implements OrderService {
     private final OrderAccessPolicy orderAccessPolicy;
     private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
+
+    @Override
+    public void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException {
+        writer.write("id,type,placerName,supplierName,orderDate,status,totalAmount\n");
+        int page = 0;
+        Page<OrderResponse> result;
+        do {
+            result = getByDateRange(from, to, page++, 100);
+            for (OrderResponse o : result.getContent()) {
+                writer.write(String.join(",",
+                        csv(o.id()), csv(o.type()), csv(o.placerName()), csv(o.supplierName()),
+                        csv(o.orderDate()), csv(o.status()), csv(o.totalAmount())) + "\n");
+            }
+        } while (result.hasNext());
+        writer.flush();
+    }
+
+    private String csv(Object value) {
+        if (value == null) return "";
+        String s = value.toString();
+        if (!s.isEmpty() && "=+-@".indexOf(s.charAt(0)) >= 0) {
+            s = "'" + s;                       // blocks spreadsheet formula injection
+        }
+        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+            s = "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
+    }
 
     @Override
     public Page<OrderResponse> getByDateRange(LocalDate from, LocalDate to, int page, int size) {
