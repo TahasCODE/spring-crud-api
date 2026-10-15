@@ -6,6 +6,7 @@ import com.example.CRUD.Entity.Supplier;
 import java.util.List;
 
 public interface SupplierService {
+    List<SupplierResponse> search(String name);
     List<SupplierResponse> getAll();
     Supplier getById(Long id);
     Supplier create(Supplier supplier);

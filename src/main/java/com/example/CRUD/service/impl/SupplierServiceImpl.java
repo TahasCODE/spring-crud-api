@@ -22,6 +22,14 @@ public class SupplierServiceImpl implements SupplierService {
     private final SupplierRepository supplierRepository;
 
     @Override
+    public List<SupplierResponse> search(String name) {
+        return supplierRepository.findByNameContainingIgnoreCase(name)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "suppliers", key = "'all'")
     public List<SupplierResponse> getAll() {

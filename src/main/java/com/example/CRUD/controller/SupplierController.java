@@ -18,6 +18,12 @@ public class SupplierController {
 
     private final SupplierService supplierService;
 
+
+    @GetMapping("/search")
+    public List<SupplierResponse> search(@RequestParam String name) {
+        return supplierService.search(name);
+    }
+
     @GetMapping
     public List<SupplierResponse> getAll() {
         return supplierService.getAll();
