@@ -33,6 +33,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 log.info("{} {} -> {} ({} ms)",
                         request.getMethod(), request.getRequestURI(), response.getStatus(), ms);
             }
+
         }
     }
 }
