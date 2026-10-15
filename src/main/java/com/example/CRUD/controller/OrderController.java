@@ -4,6 +4,7 @@ import com.example.CRUD.DTO.*;
 import com.example.CRUD.Entity.OrderStatus;
 import com.example.CRUD.service.OrderPdfService;
 import com.example.CRUD.service.OrderService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +15,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -26,6 +30,21 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
+
+
+    @GetMapping("/export")
+    public void export(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                       HttpServletResponse response) throws IOException {
+        if (from.isAfter(to) || ChronoUnit.DAYS.between(from, to) > 366) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "from must not be after to, and the range must be at most one year");
+        }
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=\"orders_" + from + "_to_" + to + ".csv\"");
+        orderService.exportCsv(from, to, response.getWriter());
+    }
 
     @GetMapping("/summary")
     public List<OrderSummary> getSummary() {
