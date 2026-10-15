@@ -1,8 +1,10 @@
 package com.example.CRUD.controller;
 
+import com.example.CRUD.DTO.SupplierRequest;
 import com.example.CRUD.DTO.SupplierResponse;
 import com.example.CRUD.Entity.Supplier;
 import com.example.CRUD.service.SupplierService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -28,18 +30,28 @@ public class SupplierController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Supplier create(@RequestBody Supplier supplier) {
-        return supplierService.create(supplier);
+    public Supplier create(@Valid @RequestBody SupplierRequest request) {
+        return supplierService.create(toEntity(request));
     }
 
     @PutMapping("/{id}")
-    public Supplier update(@PathVariable Long id, @RequestBody Supplier supplier) {
-        return supplierService.update(id, supplier);
+    public Supplier update(@PathVariable Long id, @Valid @RequestBody SupplierRequest request) {
+        return supplierService.update(id, toEntity(request));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         supplierService.delete(id);
+    }
+
+    private Supplier toEntity(SupplierRequest request) {
+        Supplier supplier = new Supplier();
+        supplier.setName(request.name());
+        supplier.setContactPerson(request.contactPerson());
+        supplier.setEmail(request.email());
+        supplier.setPhone(request.phone());
+        supplier.setAddress(request.address());
+        return supplier;
     }
 }

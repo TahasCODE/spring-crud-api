@@ -38,5 +38,6 @@ public class OrderAccessPolicy {
         if (!allowed) {
             throw new AccessDeniedException("Role " + role + " is not allowed to place this kind of order");
         }
+
     }
 }
