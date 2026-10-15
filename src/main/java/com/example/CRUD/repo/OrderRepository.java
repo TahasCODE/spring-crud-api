@@ -1,5 +1,6 @@
 package com.example.CRUD.repo;
 
+import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.Entity.Order;
 import com.example.CRUD.Entity.PurchaseOrder;
 import com.example.CRUD.Entity.SaleOrder;
@@ -15,6 +16,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    @Query("SELECT new com.example.CRUD.DTO.OrderSummary(o.status, COUNT(o), SUM(o.totalAmount)) "
+            + "FROM com.example.CRUD.Entity.Order o GROUP BY o.status")
+    List<OrderSummary> summarizeByStatus();
 
     @Override
     @EntityGraph(attributePaths = "placer")

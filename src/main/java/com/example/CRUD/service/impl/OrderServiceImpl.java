@@ -1,4 +1,5 @@
 package com.example.CRUD.service.impl;
+import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.security.OrderAccessPolicy;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
@@ -64,6 +65,11 @@ public class OrderServiceImpl implements OrderService {
         }
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
         return orderRepository.findAll(pageable).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    public List<OrderSummary> getSummary() {
+        return orderRepository.summarizeByStatus();
     }
 
     @Override
