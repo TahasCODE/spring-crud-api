@@ -27,6 +27,11 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
 
+    @GetMapping("/summary")
+    public List<OrderSummary> getSummary() {
+        return orderService.getSummary();
+    }
+
     @GetMapping("/date-range")
     public Page<OrderResponse> getByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
