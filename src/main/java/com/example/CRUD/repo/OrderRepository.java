@@ -1,6 +1,7 @@
 package com.example.CRUD.repo;
 
 import com.example.CRUD.DTO.OrderSummary;
+import com.example.CRUD.DTO.SupplierTotal;
 import com.example.CRUD.Entity.Order;
 import com.example.CRUD.Entity.PurchaseOrder;
 import com.example.CRUD.Entity.SaleOrder;
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +48,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM PurchaseOrder o WHERE o.supplier.id = :supplierId")
     @EntityGraph(attributePaths = "placer")
     List<PurchaseOrder> findPurchasesBySupplier(@Param("supplierId") Long supplierId);
+
+    @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM SaleOrder s")
+    BigDecimal totalSales();
+
+    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM PurchaseOrder p")
+    BigDecimal totalPurchases();
+
+    @Query("SELECT new com.example.CRUD.DTO.SupplierTotal(p.supplier.name, SUM(p.totalAmount)) "
+            + "FROM PurchaseOrder p GROUP BY p.supplier.id, p.supplier.name "
+            + "ORDER BY SUM(p.totalAmount) DESC")
+    List<SupplierTotal> topSuppliers(Pageable pageable);
+
+    @Query("SELECT o.orderDate FROM Order o WHERE o.orderDate >= :from")
+    List<LocalDateTime> orderDatesSince(@Param("from") LocalDateTime from);
+
+
 }
