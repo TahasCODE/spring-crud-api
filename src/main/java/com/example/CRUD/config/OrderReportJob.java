@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import java.util.List;
 public class OrderReportJob {
 
     private final OrderService orderService;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Scheduled(cron = "${app.report.cron:0 0 18 * * *}", zone = "Asia/Karachi")
     public void logDailySummary() {
