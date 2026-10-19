@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/orders/export").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/reports/**").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status").hasRole("MANAGER")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
