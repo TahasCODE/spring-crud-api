@@ -1,4 +1,5 @@
 package com.example.CRUD.DTO;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 public record DashboardResponse(
@@ -6,4 +7,4 @@ public record DashboardResponse(
         BigDecimal totalPurchases,
         List<OrderSummary> ordersByStatus,
         List<SupplierTotal> topSuppliers,
-        List<DayCount> ordersLast7Days) { }
+        List<DayCount> ordersLast7Days) implements Serializable { }

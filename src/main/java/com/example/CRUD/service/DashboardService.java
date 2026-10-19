@@ -17,7 +17,7 @@ public class DashboardService {
         this.orderRepository = orderRepository;
     }
 
-    @Cacheable("dashboard")
+    @Cacheable(cacheNames = "dashboard", cacheManager = "redisCacheManager", key = "'summary'")
     public DashboardResponse getDashboard() {
         LocalDate today = LocalDate.now();
         LocalDate first = today.minusDays(6);
