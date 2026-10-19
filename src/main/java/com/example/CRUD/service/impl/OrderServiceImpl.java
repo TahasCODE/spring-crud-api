@@ -161,9 +161,16 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(orderRepository.save(order));
     }
 
+
+
     @Override
     public OrderResponse updateStatus(Long id, OrderStatus status) {
         Order order = findOrder(id);
+        OrderStatus current = order.getStatus();
+        if (!current.canTransitionTo(status)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot change order status from " + current + " to " + status);
+        }
         order.setStatus(status);
         return toResponse(orderRepository.save(order));
     }
