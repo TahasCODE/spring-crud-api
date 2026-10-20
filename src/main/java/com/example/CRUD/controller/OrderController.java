@@ -19,9 +19,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
 import java.util.List;
 
 @Slf4j
@@ -89,19 +94,24 @@ public class OrderController {
             @Valid @RequestBody OrderRequest request,
             Principal principal) {
 
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(createOrder(request));
+        String redisKey;
+        Duration ttl;
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            if (idempotencyKey.length() > 100) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key is too long");
+            }
+            redisKey = "idem:" + principal.getName() + ":" + idempotencyKey;
+            ttl = Duration.ofHours(24);
+        } else {
+            redisKey = "dup:" + fingerprint(principal.getName(), request);
+            ttl = Duration.ofSeconds(60);
         }
-        if (idempotencyKey.length() > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key is too long");
-        }
-        String redisKey = "idem:" + principal.getName() + ":" + idempotencyKey;
 
-        if (!idempotencyStore.claim(redisKey)) {
+        if (!idempotencyStore.claim(redisKey, ttl)) {
             String existing = idempotencyStore.find(redisKey);
             if (existing == null || idempotencyStore.isInProgress(existing)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "A request with this Idempotency-Key is still being processed");
+                        "An identical request is still being processed");
             }
             return ResponseEntity.ok()
                     .header("Idempotent-Replayed", "true")
@@ -109,7 +119,7 @@ public class OrderController {
         }
         try {
             OrderResponse created = createOrder(request);
-            idempotencyStore.complete(redisKey, created.id());
+            idempotencyStore.complete(redisKey, created.id(), ttl);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (RuntimeException e) {
             idempotencyStore.release(redisKey);   // failed attempts can be retried
@@ -150,6 +160,18 @@ public class OrderController {
         OrderResponse created = orderService.create(request);
         refreshPdf(created.id());          // the PDF is saved in the vault right away
         return created;
+    }
+
+    // same details from the same user produce the same fingerprint; any changed field changes it
+    private String fingerprint(String user, OrderRequest r) {
+        String amount = r.totalAmount() == null ? "" : r.totalAmount().stripTrailingZeros().toPlainString();
+        String raw = user + "|" + r.placerId() + "|" + r.supplierId() + "|" + amount + "|" + r.status();
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void refreshPdf(Long orderId) {

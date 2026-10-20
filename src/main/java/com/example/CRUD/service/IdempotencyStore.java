@@ -10,16 +10,15 @@ import java.time.Duration;
 public class IdempotencyStore {
 
     private static final String IN_PROGRESS = "IN_PROGRESS";
-    private static final Duration TTL = Duration.ofHours(24);
     private final StringRedisTemplate redis;
 
-    public boolean claim(String key) {
-        return Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key, IN_PROGRESS, TTL));
+    public boolean claim(String key, Duration ttl) {
+        return Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key, IN_PROGRESS, ttl));
     }
     public String find(String key) { return redis.opsForValue().get(key); }
     public boolean isInProgress(String value) { return IN_PROGRESS.equals(value); }
-    public void complete(String key, Long orderId) {
-        redis.opsForValue().set(key, String.valueOf(orderId), TTL);
+    public void complete(String key, Long orderId, Duration ttl) {
+        redis.opsForValue().set(key, String.valueOf(orderId), ttl);
     }
     public void release(String key) { redis.delete(key); }
 }
