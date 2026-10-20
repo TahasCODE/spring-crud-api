@@ -58,7 +58,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())   // not needed: no cookies or sessions, the token is sent in a header
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register/customer").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register/customer",
+                                "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/auth/register/employee").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/summary").hasRole("MANAGER")
                         .requestMatchers("/actuator/health").permitAll()

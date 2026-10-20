@@ -22,8 +22,6 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
 
-
-
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> accessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));

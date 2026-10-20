@@ -16,6 +16,18 @@ public class AuthController {
 
     private final AuthService authService;
 
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
+    }
+
     @PostMapping("/register/customer")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse registerCustomer(@Valid @RequestBody RegisterCustomerRequest request) {
