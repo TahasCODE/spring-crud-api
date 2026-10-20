@@ -6,4 +6,6 @@ public interface AuthService {
     AuthResponse registerCustomer(RegisterCustomerRequest request);
     EmployeeResponse registerEmployee(RegisterEmployeeRequest request);   // manager-only, returns no token
     AuthResponse login(LoginRequest request);
+    AuthResponse refresh(String refreshToken);
+    void logout(String refreshToken);
 }

@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.CRUD.security.RefreshTokenStore;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,26 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final LoginAttemptService loginAttemptService;
+    private final RefreshTokenStore refreshTokenStore;
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public AuthResponse refresh(String refreshToken) {
+        Long personId = refreshTokenStore.consume(refreshToken);
+        if (personId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+        Person person = personRepository.findById(personId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                        "Invalid or expired refresh token"));
+        return toAuthResponse(person);
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        refreshTokenStore.revoke(refreshToken);
+    }
 
     @Override
     public AuthResponse registerCustomer(RegisterCustomerRequest r) {
@@ -89,7 +112,7 @@ public class AuthServiceImpl implements AuthService {
 
     private AuthResponse toAuthResponse(Person p) {
         String role = roleOf(p);
-        return new AuthResponse(jwtService.generateToken(p, role), "Bearer",
-                jwtService.expiresInSeconds(), p.getId(), p.getName(), p.getEmail(), role);
+        return new AuthResponse(jwtService.generateToken(p, role), refreshTokenStore.create(p.getId()),
+                "Bearer", jwtService.expiresInSeconds(), p.getId(), p.getName(), p.getEmail(), role);
     }
 }
