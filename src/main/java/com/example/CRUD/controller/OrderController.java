@@ -2,6 +2,7 @@ package com.example.CRUD.controller;
 
 import com.example.CRUD.DTO.*;
 import com.example.CRUD.Entity.OrderStatus;
+import com.example.CRUD.service.IdempotencyStore;
 import com.example.CRUD.service.OrderPdfService;
 import com.example.CRUD.service.OrderService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -30,7 +32,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
-
+    private final IdempotencyStore idempotencyStore;
 
     @GetMapping("/export")
     public void export(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -60,11 +62,11 @@ public class OrderController {
         return orderService.getByDateRange(from, to, page, size);
     }
 
-@GetMapping
-public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
-                                  @RequestParam(defaultValue = "10") int size) {
-    return orderService.getAll(page, size);
-}
+    @GetMapping
+    public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
+                                      @RequestParam(defaultValue = "10") int size) {
+        return orderService.getAll(page, size);
+    }
 
     @GetMapping("/sales")
     public List<OrderResponse> getSales() { return orderService.getSales(); }
@@ -81,11 +83,38 @@ public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
     @GetMapping("/supplier/{supplierId}")
     public List<OrderResponse> getBySupplier(@PathVariable Long supplierId) { return orderService.getBySupplier(supplierId); }
 
-    @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse create(@Valid @RequestBody OrderRequest request) {
-        OrderResponse created = orderService.create(request);
-        refreshPdf(created.id());          // the PDF is saved in the vault right away
-        return created;
+    @PostMapping
+    public ResponseEntity<OrderResponse> create(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody OrderRequest request,
+            Principal principal) {
+
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(createOrder(request));
+        }
+        if (idempotencyKey.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key is too long");
+        }
+        String redisKey = "idem:" + principal.getName() + ":" + idempotencyKey;
+
+        if (!idempotencyStore.claim(redisKey)) {
+            String existing = idempotencyStore.find(redisKey);
+            if (existing == null || idempotencyStore.isInProgress(existing)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "A request with this Idempotency-Key is still being processed");
+            }
+            return ResponseEntity.ok()
+                    .header("Idempotent-Replayed", "true")
+                    .body(orderService.getById(Long.parseLong(existing)));
+        }
+        try {
+            OrderResponse created = createOrder(request);
+            idempotencyStore.complete(redisKey, created.id());
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (RuntimeException e) {
+            idempotencyStore.release(redisKey);   // failed attempts can be retried
+            throw e;
+        }
     }
 
     @PatchMapping("/{id}/status")
@@ -115,6 +144,12 @@ public List<OrderResponse> getAll(@RequestParam(defaultValue = "0") int page,
     @PostMapping("/{id}/pdf") @ResponseStatus(HttpStatus.CREATED)
     public FileResponse createPdf(@PathVariable Long id) {
         return orderPdfService.generateAndStore(id);
+    }
+
+    private OrderResponse createOrder(OrderRequest request) {
+        OrderResponse created = orderService.create(request);
+        refreshPdf(created.id());          // the PDF is saved in the vault right away
+        return created;
     }
 
     private void refreshPdf(Long orderId) {
