@@ -14,6 +14,7 @@ import com.example.CRUD.repo.OrderRepository;
 import com.example.CRUD.repo.PersonRepository;
 import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.OrderService;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -40,6 +41,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderAccessPolicy orderAccessPolicy;
     private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
+    private final MeterRegistry meterRegistry;
 
     @Override
     public void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException {
@@ -158,9 +160,10 @@ public class OrderServiceImpl implements OrderService {
         // Customer -> SaleOrder, Employee -> PurchaseOrder
         Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
         orderAccessPolicy.assertCanPlace(order);   // 403 if the logged-in user may not place this order
-        return toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        meterRegistry.counter("orders.created", "type", saved.getType()).increment();
+        return toResponse(saved);
     }
-
 
     @Override
     public OrderResponse updateStatus(Long id, OrderStatus status) {
@@ -171,7 +174,9 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot change order status from " + current + " to " + status);
         }
         order.setStatus(status);
-        return toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        meterRegistry.counter("orders.status.changed", "status", status.name()).increment();
+        return toResponse(saved);
     }
 
     @Override
