@@ -67,6 +67,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/orders/export").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/reports/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/orders/*").hasRole("MANAGER")
                         .requestMatchers("/actuator/metrics/**").hasRole("MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/search").hasAnyRole("MANAGER", "CASHIER")
                         .anyRequest().authenticated())

@@ -3,15 +3,13 @@ package com.example.CRUD.repo;
 import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.DTO.SupplierTotal;
 import com.example.CRUD.Entity.Order;
+import com.example.CRUD.Entity.OrderStatus;
 import com.example.CRUD.Entity.PurchaseOrder;
 import com.example.CRUD.Entity.SaleOrder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
@@ -25,6 +23,14 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             + "FROM com.example.CRUD.Entity.Order o GROUP BY o.status")
     List<OrderSummary> summarizeByStatus();
 
+
+    @Query("SELECT o.id FROM Order o WHERE o.status = :status AND o.orderDate < :cutoff ORDER BY o.id")
+    List<Long> findStaleIds(@Param("status") OrderStatus status, @Param("cutoff") LocalDateTime cutoff);
+
+    // changes the status ONLY if the order still has the expected status; returns 1 if it did, 0 if not
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Order o SET o.status = :to WHERE o.id = :id AND o.status = :from")
+    int transitionStatus(@Param("id") Long id, @Param("from") OrderStatus from, @Param("to") OrderStatus to);
 
     @Override
     @EntityGraph(attributePaths = "placer")
