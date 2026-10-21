@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -38,6 +39,27 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderPdfService orderPdfService;
     private final IdempotencyStore idempotencyStore;
+
+
+    @GetMapping("/search")
+    public Page<OrderResponse> search(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) Long placerId,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction) {
+        OrderSearchCriteria criteria = new OrderSearchCriteria(
+                type == null ? null : type.toUpperCase(), status, placerId, supplierId,
+                minAmount, maxAmount, from, to);
+        return orderService.search(criteria, page, size, sortBy, direction);
+    }
 
     @GetMapping("/export")
     public void export(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -173,6 +195,8 @@ public class OrderController {
             throw new IllegalStateException(e);
         }
     }
+
+
 
     private void refreshPdf(Long orderId) {
         try {
