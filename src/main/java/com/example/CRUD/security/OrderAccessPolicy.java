@@ -12,23 +12,6 @@ public class OrderAccessPolicy {
 
     private final CurrentUser currentUser;
 
-    public Long customerPlacerId() {
-        return "CUSTOMER".equals(currentUser.role()) ? currentUser.id() : null;
-    }
-
-    public void assertCanViewPlacer(Long placerId) {
-        Long customerId = customerPlacerId();
-        if (customerId != null && !customerId.equals(placerId)) {
-            throw new AccessDeniedException("Customers may only view their own orders");
-        }
-    }
-
-    public void assertManager() {
-        if (!"MANAGER".equals(currentUser.role())) {
-            throw new AccessDeniedException("Only managers may modify orders");
-        }
-    }
-
     public void assertCanView(Order order) {
         // customers may only see their own orders; cashiers and managers keep their existing access
         if ("CUSTOMER".equals(currentUser.role())

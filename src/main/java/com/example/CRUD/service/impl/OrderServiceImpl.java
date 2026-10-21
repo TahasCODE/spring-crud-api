@@ -2,6 +2,7 @@ package com.example.CRUD.service.impl;
 import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.repo.OrderSpecifications;
+import com.example.CRUD.security.CancellationPolicy;
 import com.example.CRUD.security.OrderAccessPolicy;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
@@ -22,11 +23,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.example.CRUD.security.CancellationPolicy;
+
 
 import java.io.IOException;
 import java.io.Writer;
@@ -41,7 +43,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class OrderServiceImpl implements OrderService {
-
+    private final CancellationPolicy cancellationPolicy;
     private final OrderRepository orderRepository;
     private final OrderAccessPolicy orderAccessPolicy;
     private final PersonRepository personRepository;
@@ -49,7 +51,18 @@ public class OrderServiceImpl implements OrderService {
     private final MeterRegistry meterRegistry;
     private static final List<String> SORT_FIELDS = List.of("id", "orderDate", "totalAmount", "status");
 
-
+    @Override
+    public OrderResponse cancel(Long id, Long callerId, String role) {
+        Order order = findOrder(id);
+        cancellationPolicy.assertCanCancel(order, callerId, role, LocalDateTime.now());
+        // atomic: cancels only if the status is still the one we just checked
+        int changed = orderRepository.transitionStatus(id, order.getStatus(), OrderStatus.CANCELLED);
+        if (changed == 0) {
+            throw new BadRequestException("The order status just changed; please check it and try again");
+        }
+        meterRegistry.counter("orders.cancelled", "by", role).increment();
+        return toResponse(findOrder(id));
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -77,7 +90,7 @@ public class OrderServiceImpl implements OrderService {
         }
         Pageable pageable = PageRequest.of(page, Math.min(size, 100),
                 Sort.by(Sort.Direction.fromString(direction), sortBy));
-        return orderRepository.findAll(visibleOrders(OrderSpecifications.matching(c)), pageable).map(this::toResponse);
+        return orderRepository.findAll(OrderSpecifications.matching(c), pageable).map(this::toResponse);
     }
 
     @Override
@@ -137,15 +150,14 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.atTime(LocalTime.MAX);
         Pageable pageable =  PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
-        Specification<Order> dateRange = (root, query, cb) -> cb.between(root.get("orderDate"), start, end);
-        return orderRepository.findAll(visibleOrders(dateRange), pageable)
+        return orderRepository.findByOrderDateBetween(start, end, pageable)
                 .map(this::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getAll() {
-        return orderRepository.findAll(orderFilter(null, null)).stream().map(this::toResponse).toList();
+        return orderRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -155,25 +167,24 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("page must be 0 or more and size must be 1 or more");
         }
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
-        return orderRepository.findAll(orderFilter(null, null), pageable).stream().map(this::toResponse).toList();
+        return orderRepository.findAll(pageable).stream().map(this::toResponse).toList();
     }
 
     @Override
     public List<OrderSummary> getSummary() {
-        orderAccessPolicy.assertManager();
         return orderRepository.summarizeByStatus();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getSales() {
-        return orderRepository.findAll(orderFilter("SALE", null)).stream().map(this::toResponse).toList();
+        return orderRepository.findAllSales().stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getPurchases() {
-        return orderRepository.findAll(orderFilter("PURCHASE", null)).stream().map(this::toResponse).toList();
+        return orderRepository.findAllPurchases().stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -187,7 +198,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getByPlacer(Long placerId) {
-        orderAccessPolicy.assertCanViewPlacer(placerId);
         if (!personRepository.existsById(placerId)) {
             throw new ResourceNotFoundException("Order placer not found with id " + placerId);
         }
@@ -200,7 +210,7 @@ public class OrderServiceImpl implements OrderService {
         if (!supplierRepository.existsById(supplierId)) {
             throw new ResourceNotFoundException("Supplier not found with id " + supplierId);
         }
-        return orderRepository.findAll(orderFilter("PURCHASE", supplierId)).stream().map(this::toResponse).toList();
+        return orderRepository.findPurchasesBySupplier(supplierId).stream().map(this::toResponse).toList();
     }
 
 
@@ -230,7 +240,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse updateStatus(Long id, OrderStatus status) {
-        orderAccessPolicy.assertManager();
         Order order = findOrder(id);
         OrderStatus current = order.getStatus();
         if (!current.canTransitionTo(status)) {
@@ -245,19 +254,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void delete(Long id) {
-        orderAccessPolicy.assertManager();
         orderRepository.delete(findOrder(id));
-    }
-
-    private Specification<Order> visibleOrders(Specification<Order> filter) {
-        Long customerId = orderAccessPolicy.customerPlacerId();
-        if (customerId == null) return filter;
-        return filter.and((root, query, cb) -> cb.equal(root.get("placer").get("id"), customerId));
-    }
-
-    private Specification<Order> orderFilter(String type, Long supplierId) {
-        return visibleOrders(OrderSpecifications.matching(new OrderSearchCriteria(
-                type, null, null, supplierId, null, null, null, null)));
     }
 
     private Order findOrder(Long id) {
