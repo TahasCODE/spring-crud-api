@@ -1,5 +1,7 @@
 package com.example.CRUD.service.impl;
+import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
+import com.example.CRUD.repo.OrderSpecifications;
 import com.example.CRUD.security.OrderAccessPolicy;
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
@@ -42,6 +44,38 @@ public class OrderServiceImpl implements OrderService {
     private final PersonRepository personRepository;
     private final SupplierRepository supplierRepository;
     private final MeterRegistry meterRegistry;
+    private static final List<String> SORT_FIELDS = List.of("id", "orderDate", "totalAmount", "status");
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> search(OrderSearchCriteria c, int page, int size, String sortBy, String direction) {
+        if (page < 0 || size < 1) {
+            throw new BadRequestException("page must be 0 or more and size must be 1 or more");
+        }
+        if (!SORT_FIELDS.contains(sortBy)) {
+            throw new BadRequestException("sortBy must be one of " + SORT_FIELDS);
+        }
+        if (!direction.equalsIgnoreCase("asc") && !direction.equalsIgnoreCase("desc")) {
+            throw new BadRequestException("direction must be asc or desc");
+        }
+        if (c.type() != null && !c.type().equals("SALE") && !c.type().equals("PURCHASE")) {
+            throw new BadRequestException("type must be SALE or PURCHASE");
+        }
+        if (c.supplierId() != null && "SALE".equals(c.type())) {
+            throw new BadRequestException("Sale orders have no supplier");
+        }
+        if (c.minAmount() != null && c.maxAmount() != null && c.minAmount().compareTo(c.maxAmount()) > 0) {
+            throw new BadRequestException("minAmount must not be greater than maxAmount");
+        }
+        if (c.from() != null && c.to() != null && c.from().isAfter(c.to())) {
+            throw new BadRequestException("from must not be after to");
+        }
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100),
+                Sort.by(Sort.Direction.fromString(direction), sortBy));
+        return orderRepository.findAll(OrderSpecifications.matching(c), pageable).map(this::toResponse);
+    }
 
     @Override
     public void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException {
@@ -141,6 +175,8 @@ public class OrderServiceImpl implements OrderService {
         }
         return orderRepository.findPurchasesBySupplier(supplierId).stream().map(this::toResponse).toList();
     }
+
+
 
     @Override
     public OrderResponse create(OrderRequest request) {

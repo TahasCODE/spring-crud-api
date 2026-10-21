@@ -2,6 +2,7 @@ package com.example.CRUD.service;
 
 import com.example.CRUD.DTO.OrderRequest;
 import com.example.CRUD.DTO.OrderResponse;
+import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.Entity.OrderStatus;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,7 @@ import java.util.List;
 public interface OrderService {
     void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException;
     List<OrderSummary> getSummary();
+    Page<OrderResponse> search(OrderSearchCriteria criteria, int page, int size, String sortBy, String direction);
     Page<OrderResponse> getByDateRange(LocalDate from, LocalDate to, int page, int size);
     List<OrderResponse> getAll(int page,int size);
     List<OrderResponse> getAll();
