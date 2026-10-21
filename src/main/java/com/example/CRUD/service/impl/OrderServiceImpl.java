@@ -22,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,9 +30,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -74,7 +77,28 @@ public class OrderServiceImpl implements OrderService {
         }
         Pageable pageable = PageRequest.of(page, Math.min(size, 100),
                 Sort.by(Sort.Direction.fromString(direction), sortBy));
-        return orderRepository.findAll(OrderSpecifications.matching(c), pageable).map(this::toResponse);
+        return orderRepository.findAll(visibleOrders(OrderSpecifications.matching(c)), pageable).map(this::toResponse);
+    }
+
+    @Override
+    public List<Long> expireStaleOrders(Duration olderThan, boolean dryRun) {
+        if (!OrderStatus.PENDING.canTransitionTo(OrderStatus.CANCELLED)) {
+            return List.of();                       // the workflow rule must allow it
+        }
+        LocalDateTime cutoff = LocalDateTime.now().minus(olderThan);
+        List<Long> candidates = orderRepository.findStaleIds(OrderStatus.PENDING, cutoff);
+        if (dryRun) {
+            return candidates;                      // report only, change nothing
+        }
+        List<Long> expired = new ArrayList<>();
+        for (Long id : candidates) {
+            // cancels only if the order is STILL pending; a manager may have confirmed it a moment ago
+            if (orderRepository.transitionStatus(id, OrderStatus.PENDING, OrderStatus.CANCELLED) == 1) {
+                expired.add(id);
+                meterRegistry.counter("orders.expired").increment();
+            }
+        }
+        return expired;
     }
 
     @Override
@@ -113,14 +137,15 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.atTime(LocalTime.MAX);
         Pageable pageable =  PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
-        return orderRepository.findByOrderDateBetween(start, end, pageable)
+        Specification<Order> dateRange = (root, query, cb) -> cb.between(root.get("orderDate"), start, end);
+        return orderRepository.findAll(visibleOrders(dateRange), pageable)
                 .map(this::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getAll() {
-        return orderRepository.findAll().stream().map(this::toResponse).toList();
+        return orderRepository.findAll(orderFilter(null, null)).stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -130,24 +155,25 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("page must be 0 or more and size must be 1 or more");
         }
         Pageable pageable = PageRequest.of(page, Math.min(size, 100), Sort.by("id").descending());
-        return orderRepository.findAll(pageable).stream().map(this::toResponse).toList();
+        return orderRepository.findAll(orderFilter(null, null), pageable).stream().map(this::toResponse).toList();
     }
 
     @Override
     public List<OrderSummary> getSummary() {
+        orderAccessPolicy.assertManager();
         return orderRepository.summarizeByStatus();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getSales() {
-        return orderRepository.findAllSales().stream().map(this::toResponse).toList();
+        return orderRepository.findAll(orderFilter("SALE", null)).stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getPurchases() {
-        return orderRepository.findAllPurchases().stream().map(this::toResponse).toList();
+        return orderRepository.findAll(orderFilter("PURCHASE", null)).stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -161,6 +187,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponse> getByPlacer(Long placerId) {
+        orderAccessPolicy.assertCanViewPlacer(placerId);
         if (!personRepository.existsById(placerId)) {
             throw new ResourceNotFoundException("Order placer not found with id " + placerId);
         }
@@ -173,7 +200,7 @@ public class OrderServiceImpl implements OrderService {
         if (!supplierRepository.existsById(supplierId)) {
             throw new ResourceNotFoundException("Supplier not found with id " + supplierId);
         }
-        return orderRepository.findPurchasesBySupplier(supplierId).stream().map(this::toResponse).toList();
+        return orderRepository.findAll(orderFilter("PURCHASE", supplierId)).stream().map(this::toResponse).toList();
     }
 
 
@@ -203,6 +230,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse updateStatus(Long id, OrderStatus status) {
+        orderAccessPolicy.assertManager();
         Order order = findOrder(id);
         OrderStatus current = order.getStatus();
         if (!current.canTransitionTo(status)) {
@@ -217,7 +245,19 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void delete(Long id) {
+        orderAccessPolicy.assertManager();
         orderRepository.delete(findOrder(id));
+    }
+
+    private Specification<Order> visibleOrders(Specification<Order> filter) {
+        Long customerId = orderAccessPolicy.customerPlacerId();
+        if (customerId == null) return filter;
+        return filter.and((root, query, cb) -> cb.equal(root.get("placer").get("id"), customerId));
+    }
+
+    private Specification<Order> orderFilter(String type, Long supplierId) {
+        return visibleOrders(OrderSpecifications.matching(new OrderSearchCriteria(
+                type, null, null, supplierId, null, null, null, null)));
     }
 
     private Order findOrder(Long id) {

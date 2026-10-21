@@ -9,10 +9,12 @@ import org.springframework.data.domain.Page;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
 public interface OrderService {
+    List<Long> expireStaleOrders(Duration olderThan, boolean dryRun);
     void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException;
     List<OrderSummary> getSummary();
     Page<OrderResponse> search(OrderSearchCriteria criteria, int page, int size, String sortBy, String direction);

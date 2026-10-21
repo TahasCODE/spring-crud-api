@@ -12,6 +12,7 @@ public class IdempotencyStore {
     private static final String IN_PROGRESS = "IN_PROGRESS";
     private final StringRedisTemplate redis;
 
+
     public boolean claim(String key, Duration ttl) {
         return Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key, IN_PROGRESS, ttl));
     }
