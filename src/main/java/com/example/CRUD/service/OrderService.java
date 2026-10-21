@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface OrderService {
+    OrderResponse cancel(Long id, Long callerId, String role);
     List<Long> expireStaleOrders(Duration olderThan, boolean dryRun);
     void exportCsv(LocalDate from, LocalDate to, Writer writer) throws IOException;
     List<OrderSummary> getSummary();

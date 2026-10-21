@@ -15,6 +15,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -40,6 +42,14 @@ public class OrderController {
     private final OrderPdfService orderPdfService;
     private final IdempotencyStore idempotencyStore;
 
+
+    @PostMapping("/{id}/cancel")
+    public OrderResponse cancel(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        OrderResponse cancelled = orderService.cancel(id,
+                Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
+        refreshPdf(id);                    // the stored PDF shows the new status
+        return cancelled;
+    }
 
     @GetMapping("/search")
     public Page<OrderResponse> search(
