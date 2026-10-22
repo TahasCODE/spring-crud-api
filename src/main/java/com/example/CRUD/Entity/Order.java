@@ -2,6 +2,9 @@ package com.example.CRUD.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Version;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +17,10 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public abstract class Order {
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint default 0")
+    private Long version;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

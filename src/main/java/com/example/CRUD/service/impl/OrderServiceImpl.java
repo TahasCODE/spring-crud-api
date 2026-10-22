@@ -3,6 +3,7 @@ import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.event.OrderCancelledEvent;
 import com.example.CRUD.event.OrderCreatedEvent;
+import com.example.CRUD.exception.ConflictException;
 import com.example.CRUD.repo.OrderSpecifications;
 import com.example.CRUD.security.CancellationPolicy;
 import com.example.CRUD.security.OrderAccessPolicy;
@@ -276,14 +277,23 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderResponse updateStatus(Long id, OrderStatus status) {
+        return updateStatus(id, status, null);
+    }
+
+    @Override
+    public OrderResponse updateStatus(Long id, OrderStatus status, Long expectedVersion) {
         Order order = findOrder(id);
+        if (expectedVersion != null && !expectedVersion.equals(order.getVersion())) {
+            throw new ConflictException("Order was changed by someone else (current version is "
+                    + order.getVersion() + "). Reload it and try again.");
+        }
         OrderStatus current = order.getStatus();
         if (!current.canTransitionTo(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cannot change order status from " + current + " to " + status);
         }
         order.setStatus(status);
-        Order saved = orderRepository.save(order);
+        Order saved = orderRepository.saveAndFlush(order);
         meterRegistry.counter("orders.status.changed", "status", status.name()).increment();
         return toResponse(saved);
     }
@@ -309,7 +319,8 @@ public class OrderServiceImpl implements OrderService {
                 s == null ? null : s.getName(),
                 o.getOrderDate(),
                 o.getStatus(),
-                o.getTotalAmount()
+                o.getTotalAmount(),
+                o.getVersion()
         );
     }
 }

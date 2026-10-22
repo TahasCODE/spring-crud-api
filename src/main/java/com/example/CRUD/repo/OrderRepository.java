@@ -33,8 +33,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     // changes the status ONLY if the order still has the expected status; returns 1 if it did, 0 if not
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("UPDATE Order o SET o.status = :to WHERE o.id = :id AND o.status = :from")
-    int transitionStatus(@Param("id") Long id, @Param("from") OrderStatus from, @Param("to") OrderStatus to);
+    @Query("update Order o set o.status = :to, o.version = o.version + 1 "
+            + "where o.id = :id and o.status = :from")
+    int transitionStatus(@Param("id") Long id,
+                         @Param("from") OrderStatus from,
+                         @Param("to") OrderStatus to);
 
     @Override
     @EntityGraph(attributePaths = "placer")
