@@ -14,5 +14,5 @@ public record OrderResponse(
         String supplierName,
         LocalDateTime orderDate,
         OrderStatus status,
-        BigDecimal totalAmount
-) {}
+        BigDecimal totalAmount,
+        Long version) {}

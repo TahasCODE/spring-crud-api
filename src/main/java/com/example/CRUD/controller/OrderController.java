@@ -171,8 +171,10 @@ public class OrderController {
     }
 
     @PatchMapping("/{id}/status")
-    public OrderResponse updateStatus(@PathVariable Long id, @RequestParam OrderStatus status) {
-        OrderResponse updated = orderService.updateStatus(id, status);
+    public OrderResponse updateStatus(@PathVariable Long id,
+                                      @RequestParam OrderStatus status,
+                                      @RequestHeader(value = "If-Match", required = false) Long expectedVersion) {
+        OrderResponse updated = orderService.updateStatus(id, status, expectedVersion);
         refreshPdf(id);                    // the stored PDF always matches the order
         return updated;
     }

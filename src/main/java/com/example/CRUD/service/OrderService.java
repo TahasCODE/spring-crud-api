@@ -33,4 +33,5 @@ public interface OrderService {
     void delete(Long id);
     Page<OrderResponse> findMine(Long callerId, Pageable pageable);
     OrderResponse getVisible(Long id, Long callerId, String role);
+    OrderResponse updateStatus(Long id, OrderStatus status, Long expectedVersion);
 }
