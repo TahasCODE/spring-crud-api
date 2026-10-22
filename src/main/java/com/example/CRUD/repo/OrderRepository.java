@@ -19,6 +19,10 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
+
+    @EntityGraph(attributePaths = "placer")
+    Page<Order> findByPlacerId(Long placerId, Pageable pageable);
+
     @Query("SELECT new com.example.CRUD.DTO.OrderSummary(o.status, COUNT(o), SUM(o.totalAmount)) "
             + "FROM com.example.CRUD.Entity.Order o GROUP BY o.status")
     List<OrderSummary> summarizeByStatus();

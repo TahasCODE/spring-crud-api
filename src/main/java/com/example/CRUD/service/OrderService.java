@@ -6,6 +6,7 @@ import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
 import com.example.CRUD.Entity.OrderStatus;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -30,4 +31,6 @@ public interface OrderService {
     OrderResponse create(OrderRequest request);
     OrderResponse updateStatus(Long id, OrderStatus status);
     void delete(Long id);
+    Page<OrderResponse> findMine(Long callerId, Pageable pageable);
+    OrderResponse getVisible(Long id, Long callerId, String role);
 }
