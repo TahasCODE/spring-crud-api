@@ -1,6 +1,8 @@
 package com.example.CRUD.service.impl;
 import com.example.CRUD.DTO.OrderSearchCriteria;
 import com.example.CRUD.DTO.OrderSummary;
+import com.example.CRUD.event.OrderCancelledEvent;
+import com.example.CRUD.event.OrderCreatedEvent;
 import com.example.CRUD.repo.OrderSpecifications;
 import com.example.CRUD.security.CancellationPolicy;
 import com.example.CRUD.security.OrderAccessPolicy;
@@ -19,6 +21,7 @@ import com.example.CRUD.repo.SupplierRepository;
 import com.example.CRUD.service.OrderService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +46,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class OrderServiceImpl implements OrderService {
+    private final ApplicationEventPublisher eventPublisher;
     private final CancellationPolicy cancellationPolicy;
     private final OrderRepository orderRepository;
     private final OrderAccessPolicy orderAccessPolicy;
@@ -80,6 +84,7 @@ public class OrderServiceImpl implements OrderService {
         };
     }
 
+    @Transactional
     @Override
     public OrderResponse cancel(Long id, Long callerId, String role) {
         Order order = findOrder(id);
@@ -90,6 +95,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("The order status just changed; please check it and try again");
         }
         meterRegistry.counter("orders.cancelled", "by", role).increment();
+        eventPublisher.publishEvent(new OrderCancelledEvent(id, role + ":" + callerId));
         return toResponse(findOrder(id));
     }
 
@@ -243,7 +249,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-
+    @Transactional
     @Override
     public OrderResponse create(OrderRequest request) {
         Person person = personRepository.findById(request.placerId())
@@ -263,7 +269,8 @@ public class OrderServiceImpl implements OrderService {
         Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
         orderAccessPolicy.assertCanPlace(order);   // 403 if the logged-in user may not place this order
         Order saved = orderRepository.save(order);
-        meterRegistry.counter("orders.created", "type", saved.getType()).increment();
+        eventPublisher.publishEvent(new OrderCreatedEvent(
+                saved.getId(), saved.getPlacer().getId(), saved.getTotalAmount()));
         return toResponse(saved);
     }
 
