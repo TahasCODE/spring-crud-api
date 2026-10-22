@@ -51,6 +51,35 @@ public class OrderServiceImpl implements OrderService {
     private final MeterRegistry meterRegistry;
     private static final List<String> SORT_FIELDS = List.of("id", "orderDate", "totalAmount", "status");
 
+
+
+    @Override
+    public Page<OrderResponse> findMine(Long callerId, Pageable pageable) {
+        int size = Math.min(pageable.getPageSize(), 100);
+        Pageable safe = PageRequest.of(pageable.getPageNumber(), size,
+                Sort.by(Sort.Direction.DESC, "orderDate"));
+        return orderRepository.findByPlacerId(callerId, safe).map(this::toResponse);
+    }
+
+    @Override
+    public OrderResponse getVisible(Long id, Long callerId, String role) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !canView(order, callerId, role)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found");
+        }
+        return toResponse(order);
+    }
+
+    private boolean canView(Order order, Long callerId, String role) {
+        boolean sale = "SALE".equals(order.getType());
+        return switch (role) {
+            case "MANAGER", "EMPLOYEE" -> true;
+            case "CASHIER"  -> sale;
+            case "CUSTOMER" -> sale && order.getPlacer().getId().equals(callerId);
+            default -> false;
+        };
+    }
+
     @Override
     public OrderResponse cancel(Long id, Long callerId, String role) {
         Order order = findOrder(id);

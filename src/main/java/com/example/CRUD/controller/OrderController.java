@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -71,6 +72,14 @@ public class OrderController {
         return orderService.search(criteria, page, size, sortBy, direction);
     }
 
+
+    @GetMapping("/mine")
+    public Page<OrderResponse> mine(@AuthenticationPrincipal Jwt jwt,
+                                    @RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "20") int size) {
+        return orderService.findMine(Long.valueOf(jwt.getSubject()), PageRequest.of(page, size));
+    }
+
     @GetMapping("/export")
     public void export(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
@@ -112,7 +121,9 @@ public class OrderController {
     public List<OrderResponse> getPurchases() { return orderService.getPurchases(); }
 
     @GetMapping("/{id}")
-    public OrderResponse getById(@PathVariable Long id) { return orderService.getById(id); }
+    public OrderResponse getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return orderService.getVisible(id, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
+    }
 
     @GetMapping("/placer/{placerId}")
     public List<OrderResponse> getByPlacer(@PathVariable Long placerId) { return orderService.getByPlacer(placerId); }
