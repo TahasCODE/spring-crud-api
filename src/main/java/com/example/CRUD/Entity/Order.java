@@ -17,6 +17,13 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public abstract class Order {
+
+
+    @Column
+    private LocalDateTime deliveredAt;
+
+    public LocalDateTime getDeliveredAt() { return deliveredAt; }
+
     @Version
     @Column(name = "version", nullable = false, columnDefinition = "bigint default 0")
     private Long version;

@@ -295,6 +295,9 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot change order status from " + current + " to " + status);
         }
         order.setStatus(status);
+        if (status == OrderStatus.DELIVERED) {
+            order.setDeliveredAt(LocalDateTime.now());
+        }
         Order saved = orderRepository.saveAndFlush(order);
         meterRegistry.counter("orders.status.changed", "status", status.name()).increment();
         return toResponse(saved);

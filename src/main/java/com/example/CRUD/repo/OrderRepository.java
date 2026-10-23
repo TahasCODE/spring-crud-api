@@ -6,6 +6,7 @@ import com.example.CRUD.Entity.Order;
 import com.example.CRUD.Entity.OrderStatus;
 import com.example.CRUD.Entity.PurchaseOrder;
 import com.example.CRUD.Entity.SaleOrder;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,6 +20,9 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :id")
+    Optional<Order> findByIdForUpdate(@Param("id") Long id);
 
     @EntityGraph(attributePaths = "placer")
     Page<Order> findByPlacerId(Long placerId, Pageable pageable);
