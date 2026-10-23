@@ -9,6 +9,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,13 +24,14 @@ public class ProfilePictureController {
     private final ProfilePictureService profilePictureService;
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ProfilePictureResponse upload(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        return profilePictureService.save(id, file);
+    public ProfilePictureResponse upload(@PathVariable Long id, @RequestParam("file") MultipartFile file,
+                                         @AuthenticationPrincipal Jwt jwt) {
+        return profilePictureService.save(id, file, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
     }
 
     @GetMapping
-    public ResponseEntity<byte[]> get(@PathVariable Long id) {
-        ProfilePictureDownload p = profilePictureService.get(id);
+    public ResponseEntity<byte[]> get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        ProfilePictureDownload p = profilePictureService.get(id, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.inline().filename(p.fileName(), StandardCharsets.UTF_8).build().toString())
@@ -38,7 +41,7 @@ public class ProfilePictureController {
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        profilePictureService.delete(id);
+    public void delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        profilePictureService.delete(id, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
     }
 }

@@ -38,9 +38,9 @@ public class SecurityConfig {
             List<String> allowedOrigins) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setExposedHeaders(List.of("Content-Disposition"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "If-Match"));
+        config.setExposedHeaders(List.of("Idempotent-Replayed", "X-Request-Id"));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -61,17 +61,29 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/register/customer",
                                 "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/auth/register/employee").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/summary").hasRole("MANAGER")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/orders/export").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.GET, "/api/reports/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status").hasRole("MANAGER")
                         .requestMatchers("/actuator/metrics/**").hasRole("MANAGER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/search").hasAnyRole("MANAGER", "CASHIER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders")
-                        .hasAnyRole("MANAGER", "CASHIER", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.GET, "/api/activity").hasRole("MANAGER")
+
+                        // orders: lists and aggregates are staff only; single orders are checked in the service
+                        .requestMatchers(HttpMethod.GET, "/api/orders", "/api/orders/summary", "/api/orders/export",
+                                "/api/orders/date-range", "/api/orders/placer/*").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/search")
+                        .hasAnyRole("MANAGER", "CASHIER", "EMPLOYEE")   // the service limits cashier to sales, employee to purchases
+                        .requestMatchers(HttpMethod.GET, "/api/orders/sales").hasAnyRole("MANAGER", "CASHIER")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/purchases", "/api/orders/supplier/*")
+                        .hasAnyRole("MANAGER", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/status").hasRole("MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/orders/*").hasRole("MANAGER")
+
+                        .requestMatchers("/api/reports/**", "/api/activity", "/api/employees/**", "/api/users/**",
+                                "/api/files/**").hasRole("MANAGER")
+                        .requestMatchers("/api/suppliers/**").hasAnyRole("MANAGER", "EMPLOYEE")
+
+                        // customers: a customer may read or update only their own record (checked in the service)
+                        .requestMatchers(HttpMethod.GET, "/api/customers/*").hasAnyRole("MANAGER", "CASHIER", "CUSTOMER")
+                        .requestMatchers(HttpMethod.PUT, "/api/customers/*").hasAnyRole("MANAGER", "CASHIER", "CUSTOMER")
+                        .requestMatchers("/api/customers/**").hasAnyRole("MANAGER", "CASHIER")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))

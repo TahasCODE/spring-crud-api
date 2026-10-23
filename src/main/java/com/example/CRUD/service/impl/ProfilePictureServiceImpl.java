@@ -2,6 +2,7 @@ package com.example.CRUD.service.impl;
 
 import com.example.CRUD.DTO.ProfilePictureDownload;
 import com.example.CRUD.DTO.ProfilePictureResponse;
+import com.example.CRUD.Entity.Customer;
 import com.example.CRUD.Entity.ProfilePicture;
 import com.example.CRUD.exception.BadRequestException;
 import com.example.CRUD.exception.ResourceNotFoundException;
@@ -29,7 +30,8 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
 
     @Override
     @Transactional
-    public ProfilePictureResponse save(Long personId, MultipartFile file) {
+    public ProfilePictureResponse save(Long personId, MultipartFile file, Long callerId, String role) {
+        assertCanAccess(personId, callerId, role);
         if (!personRepository.existsById(personId)) {
             throw new ResourceNotFoundException("Customer or employee not found with id " + personId);
         }
@@ -66,7 +68,8 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
 
     @Override
     @Transactional(readOnly = true)   // a large object can only be read inside a transaction
-    public ProfilePictureDownload get(Long personId) {
+    public ProfilePictureDownload get(Long personId, Long callerId, String role) {
+        assertCanAccess(personId, callerId, role);
         ProfilePicture p = repository.findByPersonId(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("No profile picture for id " + personId));
         return new ProfilePictureDownload(p.getContent(), p.getFileName(), p.getContentType());
@@ -74,7 +77,8 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
 
     @Override
     @Transactional
-    public void delete(Long personId) {
+    public void delete(Long personId, Long callerId, String role) {
+        assertCanAccess(personId, callerId, role);
         if (removeByPersonId(personId) == 0) {
             throw new ResourceNotFoundException("No profile picture for id " + personId);
         }
@@ -84,6 +88,15 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
     @Transactional
     public void deleteIfExists(Long personId) {
         removeByPersonId(personId);
+    }
+
+    // managers: anyone; everyone else: their own picture; cashiers: also customers. Otherwise it looks like a missing person
+    private void assertCanAccess(Long personId, Long callerId, String role) {
+        boolean allowed = "MANAGER".equals(role) || personId.equals(callerId)
+                || ("CASHIER".equals(role) && personRepository.findById(personId).orElse(null) instanceof Customer);
+        if (!allowed) {
+            throw new ResourceNotFoundException("Customer or employee not found with id " + personId);
+        }
     }
 
     // unlink the large object first, then delete the row

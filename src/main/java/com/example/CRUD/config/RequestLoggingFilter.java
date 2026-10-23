@@ -29,11 +29,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             if (ms > 500) {
                 log.warn("SLOW {} {} -> {} ({} ms)",
                         request.getMethod(), request.getRequestURI(), response.getStatus(), ms);
-            } else {
-                log.info("{} {} -> {} ({} ms)",
-                        request.getMethod(), request.getRequestURI(), response.getStatus(), ms);
             }
-
         }
     }
 }
