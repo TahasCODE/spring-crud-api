@@ -5,8 +5,8 @@ import com.example.CRUD.DTO.ProfilePictureResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface ProfilePictureService {
-    ProfilePictureResponse save(Long personId, MultipartFile file);
-    ProfilePictureDownload get(Long personId);
-    void delete(Long personId);
+    ProfilePictureResponse save(Long personId, MultipartFile file, Long callerId, String role);
+    ProfilePictureDownload get(Long personId, Long callerId, String role);
+    void delete(Long personId, Long callerId, String role);
     void deleteIfExists(Long personId);
 }

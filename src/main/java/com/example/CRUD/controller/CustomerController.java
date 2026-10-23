@@ -6,6 +6,8 @@ import com.example.CRUD.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +23,9 @@ public class CustomerController {
     public List<CustomerResponse> getAll() { return customerService.getAll(); }
 
     @GetMapping("/{id}")
-    public CustomerResponse getById(@PathVariable Long id) { return customerService.getById(id); }
+    public CustomerResponse getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return customerService.getVisible(id, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
+    }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public CustomerResponse create(@Valid @RequestBody CustomerRequest request) {
@@ -29,8 +33,9 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    public CustomerResponse update(@PathVariable Long id, @Valid @RequestBody CustomerRequest request) {
-        return customerService.update(id, request);
+    public CustomerResponse update(@PathVariable Long id, @Valid @RequestBody CustomerRequest request,
+                                   @AuthenticationPrincipal Jwt jwt) {
+        return customerService.updateVisible(id, request, Long.valueOf(jwt.getSubject()), jwt.getClaimAsString("role"));
     }
 
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)

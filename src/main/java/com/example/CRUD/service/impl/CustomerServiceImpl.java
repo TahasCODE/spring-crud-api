@@ -59,6 +59,25 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepository.delete(c);
     }
 
+    @Override @Transactional(readOnly = true)
+    public CustomerResponse getVisible(Long id, Long callerId, String role) {
+        assertCanAccess(id, callerId, role);
+        return toResponse(find(id));
+    }
+
+    @Override
+    public CustomerResponse updateVisible(Long id, CustomerRequest r, Long callerId, String role) {
+        assertCanAccess(id, callerId, role);
+        return update(id, r);
+    }
+
+    // a customer may only reach their own record; "not yours" looks the same as "missing"
+    private void assertCanAccess(Long id, Long callerId, String role) {
+        if ("CUSTOMER".equals(role) && !id.equals(callerId)) {
+            throw new ResourceNotFoundException("Customer not found with id " + id);
+        }
+    }
+
     private Customer find(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));

@@ -78,7 +78,8 @@ public class OrderServiceImpl implements OrderService {
     private boolean canView(Order order, Long callerId, String role) {
         boolean sale = "SALE".equals(order.getType());
         return switch (role) {
-            case "MANAGER", "EMPLOYEE" -> true;
+            case "MANAGER" -> true;
+            case "EMPLOYEE" -> !sale;
             case "CASHIER"  -> sale;
             case "CUSTOMER" -> sale && order.getPlacer().getId().equals(callerId);
             default -> false;
@@ -102,7 +103,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponse> search(OrderSearchCriteria c, int page, int size, String sortBy, String direction) {
+    public Page<OrderResponse> search(OrderSearchCriteria criteria, int page, int size, String sortBy, String direction) {
+        OrderSearchCriteria c = orderAccessPolicy.scope(criteria);   // 403 outside the caller's order type
         if (page < 0 || size < 1) {
             throw new BadRequestException("page must be 0 or more and size must be 1 or more");
         }

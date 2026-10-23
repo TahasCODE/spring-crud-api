@@ -30,6 +30,7 @@ public class OrderEventListener {
         record("ORDER_CANCELLED | order " + e.orderId() + " | by " + e.cancelledBy());
     }
 
+
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void notifyCustomer(OrderCancelledEvent e) throws InterruptedException {

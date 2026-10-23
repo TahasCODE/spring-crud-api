@@ -21,6 +21,7 @@ vault-storage/
 *.iml
 *.ipr
 .env
+application-local.properties
 
 ### NetBeans ###
 /nbproject/private/
