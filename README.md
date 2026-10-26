@@ -1,7 +1,15 @@
-
 # Order Management REST API
 
 A Spring Boot backend for managing customers, employees, suppliers and orders. It focuses on the rules real order systems need: role-based security, safe concurrent updates, duplicate protection, refunds with limits, and background jobs.
+
+## Live demo
+
+- **Swagger UI:** [https://crud-api-4wdr.onrender.com/swagger-ui.html](https://crud-api-4wdr.onrender.com/swagger-ui.html)
+- **Health check:** [https://crud-api-4wdr.onrender.com/actuator/health](https://crud-api-4wdr.onrender.com/actuator/health)
+
+The API runs on a free hosting plan, so it goes to sleep when idle. The first request after a quiet period can take about a minute; after that it responds normally.
+
+To try it: register a customer with `POST /api/auth/register/customer`, log in with `POST /api/auth/login`, click **Authorize** in Swagger UI and paste the token, then create and cancel an order.
 
 ## Features
 
@@ -38,7 +46,7 @@ A Spring Boot backend for managing customers, employees, suppliers and orders. I
 
 ## Tech stack
 
-Java 17, Spring Boot 4, Spring Security (OAuth2 resource server / JWT), Spring Data JPA (Hibernate), PostgreSQL, Redis, Micrometer, Springdoc OpenAPI, Apache PDFBox, Lombok, Maven, GitHub Actions
+Java 17, Spring Boot 4, Docker, Spring Security (OAuth2 resource server / JWT), Spring Data JPA (Hibernate), PostgreSQL, Redis, Micrometer, Springdoc OpenAPI, Apache PDFBox, Lombok, Maven, GitHub Actions, Render, Neon, Upstash
 
 ## Getting started
 
@@ -125,6 +133,18 @@ Send the token from login as `Authorization: Bearer <token>`.
 
 Customers, employees and suppliers have their own endpoints; see Swagger UI for the full list.
 
+## Deployment
+
+The app is containerised with a multi-stage `Dockerfile` (Maven build, then a slim Java 17 runtime) and runs with the `prod` Spring profile, which reads every setting from environment variables.
+
+| Part | Service |
+|---|---|
+| API (Docker) | Render (free web service) |
+| PostgreSQL | Neon |
+| Redis | Upstash (TLS, `rediss://`) |
+
+Environment variables on the host: `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `JWT_SECRET`, `PDF_PASSWORD`, `BOOTSTRAP_MANAGER_PASSWORD`. The host health check calls `/actuator/health`. The demo uses `ddl-auto=update`; a migration tool such as Flyway is the next step for production.
+
 ## Design notes
 
 - **Who may do what** is checked in three layers: role rules in `SecurityConfig`, ownership checks in the service layer, and state and time rules in policy classes (for example `CancellationPolicy`).
@@ -139,9 +159,10 @@ Customers, employees and suppliers have their own endpoints; see Swagger UI for 
 - Transactional outbox or message queue for order events
 - Order status history (audit trail)
 - Audit log in MongoDB
-- Cloud deployment
+- Database migrations with Flyway
 
 ## Author
 
-- Taha Waheed, [LinkedIn](https://www.linkedin.com/in/taha-khan-970a743bb)
+Taha Waheed, [LinkedIn](https://www.linkedin.com/in/taha-khan-970a743bb)
+
 - GitHub: [TahasCODE](https://github.com/TahasCODE)
