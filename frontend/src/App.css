@@ -1,0 +1,23 @@
+.panel { margin: 2rem auto; width: min(calc(100% - 2rem), 70rem); padding: clamp(1rem, 3vw, 2rem); background: white; border: 1px solid #dce3ec; border-radius: 12px; }
+.sign-in { width: min(calc(100% - 2rem), 26rem); }
+h1 { margin: 0; font-size: 1.75rem; }
+.sign-in > p { color: #465669; }
+form, label { display: grid; gap: 0.5rem; }
+form { margin-top: 1.5rem; gap: 1rem; }
+input, button { font: inherit; border-radius: 6px; padding: 0.6rem 0.75rem; }
+input { width: 100%; border: 1px solid #8392a5; }
+button { border: 1px solid #17468b; background: #17468b; color: white; cursor: pointer; }
+button:disabled { opacity: 0.7; cursor: wait; }
+.secondary { background: white; color: #17468b; }
+[role="alert"] { color: #a12525; }
+.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 0.75rem; border-bottom: 1px solid #dce3ec; }
+th { background: #f0f4f8; }
+.add-customer { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #dce3ec; }
+.add-customer h2 { margin: 0; font-size: 1.2rem; }
+.add-customer form { margin-top: 0.75rem; }
+.add-customer button { justify-self: start; }
+.customer-fields { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+input[aria-invalid="true"] { border-color: #a12525; }
