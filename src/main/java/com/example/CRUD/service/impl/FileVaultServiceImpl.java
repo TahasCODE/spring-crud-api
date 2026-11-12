@@ -10,6 +10,7 @@ import com.example.CRUD.repo.StoredFileRepository;
 import com.example.CRUD.service.FileVaultService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.apache.catalina.Store;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -141,7 +142,6 @@ public class FileVaultServiceImpl implements FileVaultService {
         }
     }
 
-    // one place that writes the bytes to disk and the row to the database
     private FileResponse persist(InputStream in, String originalName, String contentType, long size, Long orderId) {
         String storedName = UUID.randomUUID() + extensionOf(originalName);
         Path target = resolvePath(storedName);

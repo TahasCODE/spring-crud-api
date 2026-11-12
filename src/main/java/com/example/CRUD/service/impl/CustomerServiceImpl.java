@@ -71,7 +71,6 @@ public class CustomerServiceImpl implements CustomerService {
         return update(id, r);
     }
 
-    // a customer may only reach their own record; "not yours" looks the same as "missing"
     private void assertCanAccess(Long id, Long callerId, String role) {
         if ("CUSTOMER".equals(role) && !id.equals(callerId)) {
             throw new ResourceNotFoundException("Customer not found with id " + id);
