@@ -34,6 +34,7 @@ function AddCustomer({ token, onCreated }: { token: string; onCreated: () => voi
     }))
 
     setSaving(true)
+
     setErrors({})
     setNotice('')
     try {

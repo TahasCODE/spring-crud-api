@@ -91,7 +91,6 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse cancel(Long id, Long callerId, String role) {
         Order order = findOrder(id);
         cancellationPolicy.assertCanCancel(order, callerId, role, LocalDateTime.now());
-        // atomic: cancels only if the status is still the one we just checked
         int changed = orderRepository.transitionStatus(id, order.getStatus(), OrderStatus.CANCELLED);
         if (changed == 0) {
             throw new BadRequestException("The order status just changed; please check it and try again");
@@ -104,7 +103,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public Page<OrderResponse> search(OrderSearchCriteria criteria, int page, int size, String sortBy, String direction) {
-        OrderSearchCriteria c = orderAccessPolicy.scope(criteria);   // 403 outside the caller's order type
+        OrderSearchCriteria c = orderAccessPolicy.scope(criteria);                                           // 403 outside the caller's order type
         if (page < 0 || size < 1) {
             throw new BadRequestException("page must be 0 or more and size must be 1 or more");
         }
@@ -143,7 +142,6 @@ public class OrderServiceImpl implements OrderService {
         }
         List<Long> expired = new ArrayList<>();
         for (Long id : candidates) {
-            // cancels only if the order is STILL pending; a manager may have confirmed it a moment ago
             if (orderRepository.transitionStatus(id, OrderStatus.PENDING, OrderStatus.CANCELLED) == 1) {
                 expired.add(id);
                 meterRegistry.counter("orders.expired").increment();
@@ -268,7 +266,6 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id " + request.supplierId()));
         }
 
-        // Customer -> SaleOrder, Employee -> PurchaseOrder
         Order order = placer.placeOrder(request.totalAmount(), request.status(), supplier);
         orderAccessPolicy.assertCanPlace(order);   // 403 if the logged-in user may not place this order
         Order saved = orderRepository.save(order);

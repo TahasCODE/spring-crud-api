@@ -50,6 +50,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
         apply(e, r);
         return toResponse(employeeRepository.save(e));
+
     }
 
     @Override
@@ -73,4 +74,5 @@ public class EmployeeServiceImpl implements EmployeeService {
         return new EmployeeResponse(e.getId(), e.getName(), e.getEmail(), e.getPhone(),
                 e.getAddress(), e.getDesignation(), e.getEmployeeType());
     }
+
 }
